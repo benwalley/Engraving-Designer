@@ -1,9 +1,10 @@
 header {
     display: grid;
-    grid-template-columns: 200px 150px 50px 1fr 400px;
+    grid-template-columns: 200px 150px 50px 1fr 400px auto;
     gap: var(--spacing-normal);
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
     color: var(--color-text);
-    padding: calc(var(--spacing-normal) / 2)
+    padding: calc(var(--spacing-normal) / 2);
+    grid-column: 1 / span 3;
 }

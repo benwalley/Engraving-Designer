@@ -1,3 +1,8 @@
 import './components/header/version-picker.js';
 import './components/header/create-copy-button.js'
 import './components/header/saving-indicator.js'
+import './components/header/dark-light-toggle.js'
+import './components/top-bar/top-bar-container.js'
+import './components/left-bar/left-bar-container.js'
+import './components/editor-body/editor-body-container.js'
+import './components/right-bar/right-bar-container.js'

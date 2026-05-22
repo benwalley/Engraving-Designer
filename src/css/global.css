@@ -8,10 +8,27 @@ body {
     height: 100vh;
     width: 100vw;
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
+    grid-template-columns: 100px 1fr 200px;
 }
 
-main {
-    height: 100%;
+top-bar-container {
+    grid-column: 1 / -1;
+    grid-row: 2;
+}
+
+left-bar-container {
+    grid-column: 1;
+    grid-row: 3;
+}
+
+editor-body-container {
+    grid-column: 2;
+    grid-row: 3;
     background: var(--color-bg);
+}
+
+right-bar-container {
+    grid-column: 3;
+    grid-row: 3;
 }

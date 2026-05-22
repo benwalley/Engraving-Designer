@@ -8,7 +8,7 @@ class SavingIndicator extends LitElement {
     :host {
       display: flex;
       align-items: center;
-      color: var(--success-green);
+      color: var(--color-success);
       font-size: 1rem;
       margin-left: auto;
       flex-direction: column;
