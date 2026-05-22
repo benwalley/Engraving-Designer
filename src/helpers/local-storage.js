@@ -1,4 +1,7 @@
 const STORAGE_KEY = 'engraving-app';
+export const LOCAL = {
+  CURRENT_VERSION_ID: "current-version-id",
+}
 
 function getStore() {
   const raw = localStorage.getItem(STORAGE_KEY);

@@ -1,5 +1,6 @@
 export const EVENTS = {
   VERSION_SELECTED: 'version:selected',
+  VERSION_SAVING:   'version:saving',
   VERSION_SAVED:    'version:saved',
   VERSION_DELETED:  'version:deleted',
 };

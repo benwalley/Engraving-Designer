@@ -1,0 +1,9 @@
+header {
+    display: grid;
+    grid-template-columns: 200px 150px 50px 1fr 400px;
+    gap: var(--spacing-normal);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    padding: calc(var(--spacing-normal) / 2)
+}

@@ -19,7 +19,7 @@ function openDB() {
   });
 }
 
-export async function saveVersion(version) {
+export async function saveLocalDbVersion(version) {
   const database = await openDB();
   return new Promise((resolve, reject) => {
     const request = database
@@ -31,7 +31,7 @@ export async function saveVersion(version) {
   });
 }
 
-export async function getVersions() {
+export async function getLocalDbVersions() {
   const database = await openDB();
   return new Promise((resolve, reject) => {
     const request = database
@@ -43,7 +43,19 @@ export async function getVersions() {
   });
 }
 
-export async function deleteVersion(id) {
+export async function getLocalDbVersionById(id) {
+  const database = await openDB();
+  return new Promise((resolve, reject) => {
+    const request = database
+      .transaction(STORE, 'readonly')
+      .objectStore(STORE)
+      .get(id);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function deleteLocalDbVersion(id) {
   const database = await openDB();
   return new Promise((resolve, reject) => {
     const request = database

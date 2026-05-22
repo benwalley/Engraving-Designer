@@ -1,0 +1,65 @@
+@layer base, theme;
+
+@layer base {
+    :root {
+        /* Colors */
+        --color-primary: #2563eb;
+        --color-success: #56b676;
+
+        /* Typography */
+        --font-size-normal: 1rem;
+
+        /* Spacing */
+        --spacing-normal: 1rem;
+
+        /* Animations */
+        --duration-fast: 150ms;
+        --duration-normal: 250ms;
+        --easing-default: ease-in-out;
+
+        /* Light mode (default) */
+        --color-bg: #ffffff;
+        --color-surface: #f3f4f6;
+        --color-border: #d1d5db;
+        --color-border-hover: #9ca3af;
+        --color-text: #111827;
+        --color-text-muted: #6b7280;
+
+        /* Accent (focus rings, selections) */
+        --color-accent: #6366f1;
+        --color-accent-subtle: #eef2ff;
+        --color-accent-subtle-active: #e0e7ff;
+        --color-accent-text: #4338ca;
+
+        /* Shadows */
+        --shadow-dropdown: 0 4px 12px rgb(0 0 0 / 0.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --color-bg: #111827;
+            --color-surface: #1f2937;
+            --color-border: #374151;
+            --color-border-hover: #6b7280;
+            --color-text: #f9fafb;
+            --color-text-muted: #9ca3af;
+
+            --color-accent: #818cf8;
+            --color-accent-subtle: #1e1b4b;
+            --color-accent-subtle-active: #312e81;
+            --color-accent-text: #a5b4fc;
+
+            --shadow-dropdown: 0 4px 12px rgb(0 0 0 / 0.4);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :root {
+            --duration-fast: 0ms;
+            --duration-normal: 0ms;
+        }
+    }
+}
+
+@layer theme {
+}
