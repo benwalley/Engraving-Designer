@@ -1,26 +1,29 @@
 import { LitElement, html, css } from 'lit';
+import { on, off, emit, EVENTS } from '../../helpers/events.js';
+import { TOOLS, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import './tool-button.js';
-import '../icons/icon-tool-select.js';
-import '../icons/icon-tool-move.js';
-import '../icons/icon-tool-rectangle.js';
-import '../icons/icon-tool-ellipse.js';
-import '../icons/icon-tool-text.js';
-import '../icons/icon-tool-line.js';
-import '../icons/icon-tool-pen.js';
-import '../icons/icon-tool-zoom.js';
-
-const TOOLS = [
-  { id: 'select',    label: 'Select',    icon: html`<icon-tool-select></icon-tool-select>` },
-  { id: 'move',      label: 'Move',      icon: html`<icon-tool-move></icon-tool-move>` },
-  { id: 'rectangle', label: 'Rectangle', icon: html`<icon-tool-rectangle></icon-tool-rectangle>` },
-  { id: 'ellipse',   label: 'Ellipse',   icon: html`<icon-tool-ellipse></icon-tool-ellipse>` },
-  { id: 'text',      label: 'Text',      icon: html`<icon-tool-text></icon-tool-text>` },
-  { id: 'line',      label: 'Line',      icon: html`<icon-tool-line></icon-tool-line>` },
-  { id: 'pen',       label: 'Pen',       icon: html`<icon-tool-pen></icon-tool-pen>` },
-  { id: 'zoom',      label: 'Zoom',      icon: html`<icon-tool-zoom></icon-tool-zoom>` },
-];
 
 class LeftBarContainer extends LitElement {
+  static properties = {
+    _activeTool: { state: true },
+  };
+
+  constructor() {
+    super();
+    this._activeTool = DEFAULT_TOOL_ID;
+    this._onToolChanged = ({ id }) => { this._activeTool = id; };
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    on(EVENTS.TOOL_CHANGED, this._onToolChanged);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    off(EVENTS.TOOL_CHANGED, this._onToolChanged);
+  }
+
   static styles = css`
     :host {
       background: var(--color-surface);
@@ -31,16 +34,25 @@ class LeftBarContainer extends LitElement {
     .tools-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      align-items: center;  
+      align-items: center;
       gap: 2px;
     }
   `;
+
+  _selectTool(id) {
+    this._activeTool = id;
+    emit(EVENTS.TOOL_CHANGED, { id });
+  }
 
   render() {
     return html`
       <div class="tools-container">
         ${TOOLS.map(tool => html`
-          <tool-button label=${tool.label}>
+          <tool-button
+            label=${tool.label}
+            ?active=${this._activeTool === tool.id}
+            @click=${() => this._selectTool(tool.id)}
+          >
             ${tool.icon}
           </tool-button>
         `)}

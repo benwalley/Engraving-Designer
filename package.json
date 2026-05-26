@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "fabric": "^7.4.0",
     "lit": "^3.0.0"
   },
   "devDependencies": {

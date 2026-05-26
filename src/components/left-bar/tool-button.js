@@ -2,7 +2,8 @@ import { LitElement, html, css } from 'lit';
 
 class ToolButton extends LitElement {
   static properties = {
-    label: { type: String },
+    label:  { type: String },
+    active: { type: Boolean },
   };
 
   static styles = css`
@@ -22,19 +23,16 @@ class ToolButton extends LitElement {
       font-size: 18px;
     }
 
-    button:hover {
+    button:hover,
+    button.active {
       background: var(--color-accent-subtle);
       color: var(--color-accent);
     }
   `;
 
-  _handleClick() {
-    // TODO
-  }
-
   render() {
     return html`
-      <button type="button" title=${this.label} @click=${this._handleClick}>
+      <button type="button" title=${this.label} class=${this.active ? 'active' : ''}>
         <slot></slot>
       </button>
     `;

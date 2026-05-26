@@ -3,6 +3,15 @@ export const EVENTS = {
   VERSION_SAVING:   'version:saving',
   VERSION_SAVED:    'version:saved',
   VERSION_DELETED:  'version:deleted',
+  TOOL_CHANGED:     'tool:changed',
+  ZOOM_CHANGED:         'zoom:changed',
+  ZOOM_SET:             'zoom:set',
+  SELECTION_CHANGED:    'selection:changed',
+  TOOL_OPTIONS_CHANGED: 'tool-options:changed',
+  CANVAS_OBJECTS_UPDATED: 'canvas:objects-updated',
+  LAYER_SELECT:           'layer:select',
+  LAYER_REORDER:          'layer:reorder',
+  LAYER_RENAME:           'layer:rename',
 };
 
 const listeners = new Map();
