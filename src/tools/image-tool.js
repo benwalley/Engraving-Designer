@@ -56,9 +56,13 @@ export class ImageTool {
     const file = this._fileInput?.files?.[0];
     if (!file) return;
 
-    const url = URL.createObjectURL(file);
-    const img = await FabricImage.fromURL(url);
-    URL.revokeObjectURL(url);
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const img = await FabricImage.fromURL(dataUrl);
 
     img.filters.push(new filters.Grayscale());
     img.applyFilters();
