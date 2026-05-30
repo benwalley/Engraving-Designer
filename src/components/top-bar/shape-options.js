@@ -12,30 +12,33 @@ const FONTS = [
   'Verdana',
 ];
 
-function parseColor(value) {
-  if (!value || typeof value !== 'string') return { hex: '#000000', alpha: 1 };
-  const m = value.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/);
+function parseGray(value) {
+  if (!value || typeof value !== 'string') return { dark: 100, alpha: 100 };
+  const m = value.match(/rgba?\(\s*(\d+).*?(?:,\s*([\d.]+))?\s*\)/);
   if (m) {
-    const hex = '#' + [m[1], m[2], m[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('');
-    return { hex, alpha: m[4] !== undefined ? parseFloat(m[4]) : 1 };
+    return {
+      dark:  Math.round((1 - parseInt(m[1]) / 255) * 100),
+      alpha: Math.round((m[2] !== undefined ? parseFloat(m[2]) : 1) * 100),
+    };
   }
-  if (value.startsWith('#')) return { hex: value.slice(0, 7), alpha: 1 };
-  return { hex: '#000000', alpha: 1 };
+  if (value.startsWith('#')) {
+    const n = parseInt(value.slice(1, 3), 16);
+    return { dark: Math.round((1 - n / 255) * 100), alpha: 100 };
+  }
+  return { dark: 100, alpha: 100 };
 }
 
-function toRgba(hex, alpha) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+function grayToRgba(dark, alpha) {
+  const n = Math.round(255 * (1 - dark / 100));
+  return `rgba(${n}, ${n}, ${n}, ${alpha / 100})`;
 }
 
 class ShapeOptions extends LitElement {
   static properties = {
     selectionData: {},
-    _fillHex:     { state: true },
+    _fillDark:    { state: true },
     _fillAlpha:   { state: true },
-    _strokeHex:   { state: true },
+    _strokeDark:  { state: true },
     _strokeAlpha: { state: true },
     _strokeWidth: { state: true },
     _rx:          { state: true },
@@ -45,6 +48,10 @@ class ShapeOptions extends LitElement {
     _fontWeight:  { state: true },
     _fontStyle:   { state: true },
     _underline:   { state: true },
+    _brightness:  { state: true },
+    _contrast:    { state: true },
+    _gamma:       { state: true },
+    _inverted:    { state: true },
   };
 
   static styles = css`
@@ -78,51 +85,7 @@ class ShapeOptions extends LitElement {
       user-select: none;
     }
 
-    /* ── Color swatch ── */
-    .color-btn {
-      position: relative;
-      width: 22px;
-      height: 22px;
-      border-radius: 5px;
-      border: 1.5px solid var(--color-border);
-      cursor: pointer;
-      overflow: hidden;
-      flex-shrink: 0;
-      background-image:
-        linear-gradient(45deg, #b0b0b0 25%, transparent 25%),
-        linear-gradient(-45deg, #b0b0b0 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #b0b0b0 75%),
-        linear-gradient(-45deg, transparent 75%, #b0b0b0 75%);
-      background-size: 6px 6px;
-      background-position: 0 0, 0 3px, 3px -3px, -3px 0;
-      background-color: #fff;
-      transition: border-color var(--duration-fast) var(--easing-default),
-                  box-shadow var(--duration-fast) var(--easing-default);
-    }
-
-    .color-btn:hover {
-      border-color: var(--color-border-hover);
-      box-shadow: 0 0 0 2px var(--color-accent-subtle);
-    }
-
-    .color-fill {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-
-    input[type="color"] {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-      padding: 0;
-      border: none;
-    }
-
-    /* ── Opacity slider ── */
+    /* ── Sliders ── */
     .slider-wrap {
       display: flex;
       align-items: center;
@@ -144,6 +107,11 @@ class ShapeOptions extends LitElement {
         var(--color-border) var(--pct, 100%),
         var(--color-border) 100%
       );
+    }
+
+    input[type="range"].shade-slider {
+      background: linear-gradient(to right, #fff, #000);
+      box-shadow: inset 0 0 0 1px var(--color-border);
     }
 
     input[type="range"]::-webkit-slider-thumb {
@@ -296,10 +264,10 @@ class ShapeOptions extends LitElement {
 
   constructor() {
     super();
-    this._fillHex     = '#ffffff';
-    this._fillAlpha   = 1;
-    this._strokeHex   = '#2563eb';
-    this._strokeAlpha = 1;
+    this._fillDark    = 0;
+    this._fillAlpha   = 100;
+    this._strokeDark  = 100;
+    this._strokeAlpha = 100;
     this._strokeWidth = 2;
     this._rx          = 0;
     this._type        = '';
@@ -308,15 +276,24 @@ class ShapeOptions extends LitElement {
     this._fontWeight  = 'normal';
     this._fontStyle   = 'normal';
     this._underline   = false;
+    this._brightness  = 0;
+    this._contrast    = 0;
+    this._gamma       = 100;
+    this._inverted    = false;
   }
 
   willUpdate(changedProps) {
     if (!changedProps.has('selectionData') || !this.selectionData) return;
     this._type = this.selectionData.type ?? '';
 
-    if (this._type === 'i-text') {
-      const fill        = parseColor(this.selectionData.fill ?? '#000000');
-      this._fillHex     = fill.hex;
+    if (this._type === 'image') {
+      this._brightness = Math.round((this.selectionData.brightness ?? 0) * 100);
+      this._contrast   = Math.round((this.selectionData.contrast   ?? 0) * 100);
+      this._gamma      = Math.round((this.selectionData.gamma      ?? 1.0) * 100);
+      this._inverted   = this.selectionData.inverted ?? false;
+    } else if (this._type === 'i-text') {
+      const fill        = parseGray(this.selectionData.fill ?? '#000000');
+      this._fillDark    = fill.dark;
       this._fillAlpha   = fill.alpha;
       this._fontFamily  = this.selectionData.fontFamily ?? 'Arial';
       this._fontSize    = this.selectionData.fontSize   ?? 24;
@@ -324,11 +301,11 @@ class ShapeOptions extends LitElement {
       this._fontStyle   = this.selectionData.fontStyle  ?? 'normal';
       this._underline   = this.selectionData.underline  ?? false;
     } else {
-      const fill   = parseColor(this.selectionData.fill   ?? '#ffffff');
-      const stroke = parseColor(this.selectionData.stroke ?? '#2563eb');
-      this._fillHex     = fill.hex;
+      const fill   = parseGray(this.selectionData.fill   ?? '#ffffff');
+      const stroke = parseGray(this.selectionData.stroke ?? '#000000');
+      this._fillDark    = fill.dark;
       this._fillAlpha   = fill.alpha;
-      this._strokeHex   = stroke.hex;
+      this._strokeDark  = stroke.dark;
       this._strokeAlpha = stroke.alpha;
       this._strokeWidth = this.selectionData.strokeWidth ?? 2;
       this._rx          = this.selectionData.rx          ?? 0;
@@ -348,31 +325,31 @@ class ShapeOptions extends LitElement {
   }
 
   _renderTextOptions() {
-    const fillPct = Math.round(this._fillAlpha * 100);
-    const bold      = this._fontWeight === 'bold';
-    const italic    = this._fontStyle  === 'italic';
+    const bold   = this._fontWeight === 'bold';
+    const italic = this._fontStyle  === 'italic';
 
     return html`
       <div class="group">
-        <span class="group-label">Color</span>
-        <div class="color-btn">
-          <div class="color-fill" style="background:${toRgba(this._fillHex, this._fillAlpha)}"></div>
-          <input type="color" .value=${this._fillHex}
+        <span class="group-label">Shade</span>
+        <div class="slider-wrap">
+          <input type="range" class="shade-slider" min="0" max="100" step="1"
+            .value=${this._fillDark}
             @input=${e => {
-              this._fillHex = e.target.value;
-              this._change('fill', toRgba(e.target.value, this._fillAlpha));
+              this._fillDark = +e.target.value;
+              this._change('fill', grayToRgba(this._fillDark, this._fillAlpha));
             }} />
+          <span class="slider-readout">${this._fillDark}%</span>
         </div>
+        <span class="group-label">Opacity</span>
         <div class="slider-wrap">
           <input type="range" min="0" max="100" step="1"
-            .value=${fillPct}
-            style="--pct: ${fillPct}%"
+            .value=${this._fillAlpha}
+            style="--pct: ${this._fillAlpha}%"
             @input=${e => {
-              const a = Number(e.target.value) / 100;
-              this._fillAlpha = a;
-              this._change('fill', toRgba(this._fillHex, a));
+              this._fillAlpha = +e.target.value;
+              this._change('fill', grayToRgba(this._fillDark, this._fillAlpha));
             }} />
-          <span class="slider-readout">${fillPct}%</span>
+          <span class="slider-readout">${this._fillAlpha}%</span>
         </div>
       </div>
 
@@ -431,31 +408,29 @@ class ShapeOptions extends LitElement {
   }
 
   _renderShapeOptions() {
-    const fillPct  = Math.round(this._fillAlpha   * 100);
-    const strkPct  = Math.round(this._strokeAlpha * 100);
-
     return html`
       ${this._type !== 'line' ? html`
         <div class="group">
           <span class="group-label">Fill</span>
-          <div class="color-btn">
-            <div class="color-fill" style="background:${toRgba(this._fillHex, this._fillAlpha)}"></div>
-            <input type="color" .value=${this._fillHex}
+          <div class="slider-wrap">
+            <input type="range" class="shade-slider" min="0" max="100" step="1"
+              .value=${this._fillDark}
               @input=${e => {
-                this._fillHex = e.target.value;
-                this._change('fill', toRgba(e.target.value, this._fillAlpha));
+                this._fillDark = +e.target.value;
+                this._change('fill', grayToRgba(this._fillDark, this._fillAlpha));
               }} />
+            <span class="slider-readout">${this._fillDark}%</span>
           </div>
+          <span class="group-label">Opacity</span>
           <div class="slider-wrap">
             <input type="range" min="0" max="100" step="1"
-              .value=${fillPct}
-              style="--pct: ${fillPct}%"
+              .value=${this._fillAlpha}
+              style="--pct: ${this._fillAlpha}%"
               @input=${e => {
-                const a = Number(e.target.value) / 100;
-                this._fillAlpha = a;
-                this._change('fill', toRgba(this._fillHex, a));
+                this._fillAlpha = +e.target.value;
+                this._change('fill', grayToRgba(this._fillDark, this._fillAlpha));
               }} />
-            <span class="slider-readout">${fillPct}%</span>
+            <span class="slider-readout">${this._fillAlpha}%</span>
           </div>
         </div>
 
@@ -464,24 +439,25 @@ class ShapeOptions extends LitElement {
 
       <div class="group">
         <span class="group-label">Stroke</span>
-        <div class="color-btn">
-          <div class="color-fill" style="background:${toRgba(this._strokeHex, this._strokeAlpha)}"></div>
-          <input type="color" .value=${this._strokeHex}
+        <div class="slider-wrap">
+          <input type="range" class="shade-slider" min="0" max="100" step="1"
+            .value=${this._strokeDark}
             @input=${e => {
-              this._strokeHex = e.target.value;
-              this._change('stroke', toRgba(e.target.value, this._strokeAlpha));
+              this._strokeDark = +e.target.value;
+              this._change('stroke', grayToRgba(this._strokeDark, this._strokeAlpha));
             }} />
+          <span class="slider-readout">${this._strokeDark}%</span>
         </div>
+        <span class="group-label">Opacity</span>
         <div class="slider-wrap">
           <input type="range" min="0" max="100" step="1"
-            .value=${strkPct}
-            style="--pct: ${strkPct}%"
+            .value=${this._strokeAlpha}
+            style="--pct: ${this._strokeAlpha}%"
             @input=${e => {
-              const a = Number(e.target.value) / 100;
-              this._strokeAlpha = a;
-              this._change('stroke', toRgba(this._strokeHex, a));
+              this._strokeAlpha = +e.target.value;
+              this._change('stroke', grayToRgba(this._strokeDark, this._strokeAlpha));
             }} />
-          <span class="slider-readout">${strkPct}%</span>
+          <span class="slider-readout">${this._strokeAlpha}%</span>
         </div>
       </div>
 
@@ -511,9 +487,72 @@ class ShapeOptions extends LitElement {
   }
 
   render() {
+    if (this._type === 'image') return this._renderImageOptions();
     return this._type === 'i-text'
       ? this._renderTextOptions()
       : this._renderShapeOptions();
+  }
+
+  _renderImageOptions() {
+    const bSign = this._brightness > 0 ? '+' : '';
+    const cSign = this._contrast   > 0 ? '+' : '';
+    return html`
+      <div class="group">
+        <span class="group-label">Brightness</span>
+        <div class="slider-wrap">
+          <input type="range" min="-100" max="100" step="1"
+            .value=${this._brightness}
+            style="--pct: ${(this._brightness + 100) / 2}%"
+            @input=${e => {
+              this._brightness = +e.target.value;
+              this._change('brightness', this._brightness / 100);
+            }} />
+          <span class="slider-readout">${bSign}${this._brightness}</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <span class="group-label">Contrast</span>
+        <div class="slider-wrap">
+          <input type="range" min="-100" max="100" step="1"
+            .value=${this._contrast}
+            style="--pct: ${(this._contrast + 100) / 2}%"
+            @input=${e => {
+              this._contrast = +e.target.value;
+              this._change('contrast', this._contrast / 100);
+            }} />
+          <span class="slider-readout">${cSign}${this._contrast}</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <span class="group-label">Gamma</span>
+        <div class="slider-wrap">
+          <input type="range" min="10" max="300" step="1"
+            .value=${this._gamma}
+            style="--pct: ${((this._gamma - 10) / 290) * 100}%"
+            @input=${e => {
+              this._gamma = +e.target.value;
+              this._change('gamma', this._gamma / 100);
+            }} />
+          <span class="slider-readout">${(this._gamma / 100).toFixed(1)}</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <button class="toggle-btn ${this._inverted ? 'active' : ''}" title="Invert"
+          @click=${() => {
+            this._inverted = !this._inverted;
+            this._change('inverted', this._inverted);
+          }}>Inv</button>
+      </div>
+    `;
   }
 }
 

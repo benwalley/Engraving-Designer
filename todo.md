@@ -1,1 +1,2 @@
- - change copy button to new with popup that allows copy from current, or blank.
+ - add contrast and brightness controlls to images
+ - make everything grayscale       

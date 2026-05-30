@@ -1,4 +1,26 @@
+import { filters } from 'fabric';
 import { on, off, emit, EVENTS } from '../helpers/events.js';
+
+function readImageFilters(obj) {
+  const result = { brightness: 0, contrast: 0, gamma: 1.0, inverted: false };
+  for (const f of obj.filters ?? []) {
+    if (f.type === 'Brightness') result.brightness = f.brightness ?? 0;
+    if (f.type === 'Contrast')   result.contrast   = f.contrast   ?? 0;
+    if (f.type === 'Gamma')      result.gamma      = f.gamma?.[0] ?? 1.0;
+    if (f.type === 'Invert')     result.inverted   = true;
+  }
+  return result;
+}
+
+function applyImageFilters(obj, canvas, { brightness, contrast, gamma, inverted }) {
+  obj.filters = [new filters.Grayscale()];
+  if (brightness !== 0) obj.filters.push(new filters.Brightness({ brightness }));
+  if (contrast !== 0)   obj.filters.push(new filters.Contrast({ contrast }));
+  if (gamma !== 1.0)    obj.filters.push(new filters.Gamma({ gamma: [gamma, gamma, gamma] }));
+  if (inverted)         obj.filters.push(new filters.Invert());
+  obj.applyFilters();
+  canvas.renderAll();
+}
 
 export class SelectTool {
   activate(canvas) {
@@ -27,6 +49,16 @@ export class SelectTool {
           fontStyle:  obj.fontStyle  ?? 'normal',
           underline:  obj.underline  ?? false,
         });
+      } else if (obj.type === 'image') {
+        const f = readImageFilters(obj);
+        emit(EVENTS.SELECTION_CHANGED, {
+          id:         obj._layerId,
+          type:       'image',
+          brightness: f.brightness,
+          contrast:   f.contrast,
+          gamma:      f.gamma,
+          inverted:   f.inverted,
+        });
       } else {
         emit(EVENTS.SELECTION_CHANGED, {
           id:          obj._layerId,
@@ -42,6 +74,10 @@ export class SelectTool {
     this._onOptionsChanged = (data) => {
       const obj = canvas.getActiveObject();
       if (!obj) return;
+      if (obj.type === 'image') {
+        applyImageFilters(obj, canvas, { ...readImageFilters(obj), ...data });
+        return;
+      }
       if (data.fill        !== undefined) obj.set('fill',        data.fill);
       if (data.stroke      !== undefined) obj.set('stroke',      data.stroke);
       if (data.strokeWidth !== undefined) obj.set('strokeWidth', data.strokeWidth);

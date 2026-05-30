@@ -2,7 +2,7 @@ import { Line } from 'fabric';
 import { on, off, emit, EVENTS } from '../helpers/events.js';
 import { snapCoord } from '../helpers/grid.js';
 
-const defaults = { stroke: '#2563eb', strokeWidth: 2 };
+const defaults = { stroke: '#000000', strokeWidth: 2 };
 
 export class LineTool {
   activate(canvas) {

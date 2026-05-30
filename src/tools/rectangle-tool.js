@@ -2,7 +2,7 @@ import { Rect } from 'fabric';
 import { on, off, emit, EVENTS } from '../helpers/events.js';
 import { snapCoord } from '../helpers/grid.js';
 
-const defaults = { fill: '#ffffff', stroke: '#2563eb', strokeWidth: 2, rx: 0 };
+const defaults = { fill: '#ffffff', stroke: '#000000', strokeWidth: 2, rx: 0 };
 
 export class RectangleTool {
   activate(canvas) {

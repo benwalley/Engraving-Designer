@@ -4,6 +4,7 @@ import { RectangleTool } from './rectangle-tool.js';
 import { EllipseTool } from './ellipse-tool.js';
 import { LineTool } from './line-tool.js';
 import { TextTool } from './text-tool.js';
+import { ImageTool } from './image-tool.js';
 
 // Side-effect imports so icon elements are registered
 import '../components/icons/icon-tool-select.js';
@@ -12,6 +13,7 @@ import '../components/icons/icon-tool-rectangle.js';
 import '../components/icons/icon-tool-ellipse.js';
 import '../components/icons/icon-tool-text.js';
 import '../components/icons/icon-tool-line.js';
+import '../components/icons/icon-tool-image.js';
 
 export const DEFAULT_TOOL_ID = 'select';
 
@@ -24,6 +26,7 @@ export const TOOLS = [
   { id: 'ellipse',   label: 'Ellipse',   icon: html`<icon-tool-ellipse></icon-tool-ellipse>`,     Tool: EllipseTool },
   { id: 'text',      label: 'Text',      icon: html`<icon-tool-text></icon-tool-text>`,           Tool: TextTool },
   { id: 'line',      label: 'Line',      icon: html`<icon-tool-line></icon-tool-line>`,           Tool: LineTool },
+  { id: 'image',     label: 'Image',     icon: html`<icon-tool-image></icon-tool-image>`,         Tool: ImageTool },
 ];
 
 export const TOOL_MAP = Object.fromEntries(
