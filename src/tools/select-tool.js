@@ -56,6 +56,16 @@ export class SelectTool {
 
     this._clearSelection = () => emit(EVENTS.SELECTION_CHANGED, null);
 
+    this._onKeyDown = (e) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      if (e.target.closest('input, textarea, [contenteditable]')) return;
+      const obj = canvas.getActiveObject();
+      if (!obj || obj.isEditing) return;
+      canvas.remove(obj);
+      canvas.discardActiveObject();
+    };
+    document.addEventListener('keydown', this._onKeyDown);
+
     canvas.on('selection:created', this._emitSelection);
     canvas.on('selection:updated', this._emitSelection);
     canvas.on('selection:cleared', this._clearSelection);
@@ -63,6 +73,7 @@ export class SelectTool {
   }
 
   deactivate(canvas) {
+    document.removeEventListener('keydown', this._onKeyDown);
     canvas.off('selection:created', this._emitSelection);
     canvas.off('selection:updated', this._emitSelection);
     canvas.off('selection:cleared', this._clearSelection);

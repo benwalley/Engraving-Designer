@@ -53,7 +53,7 @@ class SavingIndicator extends LitElement {
     this._status = 'saved';
     this._savedTimeout = setTimeout(() => {
       this._status = 'idle';
-    }, 5000);
+    }, 2000);
   }
 
   render() {

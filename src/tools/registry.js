@@ -12,8 +12,6 @@ import '../components/icons/icon-tool-rectangle.js';
 import '../components/icons/icon-tool-ellipse.js';
 import '../components/icons/icon-tool-text.js';
 import '../components/icons/icon-tool-line.js';
-import '../components/icons/icon-tool-pen.js';
-import '../components/icons/icon-tool-zoom.js';
 
 export const DEFAULT_TOOL_ID = 'select';
 
@@ -26,8 +24,6 @@ export const TOOLS = [
   { id: 'ellipse',   label: 'Ellipse',   icon: html`<icon-tool-ellipse></icon-tool-ellipse>`,     Tool: EllipseTool },
   { id: 'text',      label: 'Text',      icon: html`<icon-tool-text></icon-tool-text>`,           Tool: TextTool },
   { id: 'line',      label: 'Line',      icon: html`<icon-tool-line></icon-tool-line>`,           Tool: LineTool },
-  { id: 'pen',       label: 'Pen',       icon: html`<icon-tool-pen></icon-tool-pen>`,             Tool: null },
-  { id: 'zoom',      label: 'Zoom',      icon: html`<icon-tool-zoom></icon-tool-zoom>`,           Tool: null },
 ];
 
 export const TOOL_MAP = Object.fromEntries(

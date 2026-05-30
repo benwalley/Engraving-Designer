@@ -4,6 +4,9 @@ import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { TOOL_MAP, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import { SelectTool } from '../../tools/select-tool.js';
 import { initPanZoom } from '../../canvas/pan-zoom.js';
+import { getItem, LOCAL } from '../../helpers/local-storage.js';
+import { getLocalDbVersionById, saveLocalDbVersion } from '../../helpers/local-db.js';
+import { gridState } from '../../helpers/grid.js';
 
 class EditorBodyContainer extends LitElement {
   static styles = css`
@@ -14,9 +17,13 @@ class EditorBodyContainer extends LitElement {
   `;
 
   firstUpdated() {
+    this._saveTimer = null;
+    this._loading = false;
+
     const canvasEl = this.shadowRoot.querySelector('canvas');
+    const style = getComputedStyle(document.documentElement);
     this._canvas = new FabricCanvas(canvasEl, {
-      backgroundColor: '#ffffff',
+      backgroundColor: style.getPropertyValue('--color-canvas-bg').trim() || '#ffffff',
       skipOffscreen: false,
     });
 
@@ -25,17 +32,38 @@ class EditorBodyContainer extends LitElement {
     this._resize();
     initPanZoom(this._canvas);
 
+    // Restore grid state from localStorage
+    gridState.showGrid   = getItem(LOCAL.GRID_SHOW)   === true;
+    gridState.snapToGrid = getItem(LOCAL.GRID_SNAP)   === true;
+
+    this._canvas.on('after:render', ({ ctx }) => {
+      if (ctx === this._canvas.getContext()) this._drawGrid();
+    });
+
+    this._onGridChanged = ({ showGrid, snapToGrid }) => {
+      gridState.showGrid   = showGrid;
+      gridState.snapToGrid = snapToGrid;
+      this._canvas.requestRenderAll();
+    };
+    on(EVENTS.GRID_CHANGED, this._onGridChanged);
+
     this._activeToolId = DEFAULT_TOOL_ID;
     this._activeTool = new SelectTool();
     this._activeTool.activate(this._canvas);
 
     this._onObjectAdded = ({ target }) => {
-      target._layerId = crypto.randomUUID();
+      if (!target._layerId) target._layerId = crypto.randomUUID();
       this._emitObjects();
+      this._scheduleSave();
     };
-    this._onObjectRemoved = () => this._emitObjects();
+    this._onObjectRemoved = () => {
+      this._emitObjects();
+      this._scheduleSave();
+    };
+    this._onObjectModified = () => this._scheduleSave();
     this._canvas.on('object:added', this._onObjectAdded);
     this._canvas.on('object:removed', this._onObjectRemoved);
+    this._canvas.on('object:modified', this._onObjectModified);
 
     this._onToolChanged = ({ id }) => this._switchTool(id);
     on(EVENTS.TOOL_CHANGED, this._onToolChanged);
@@ -61,6 +89,7 @@ class EditorBodyContainer extends LitElement {
       this._canvas.moveObjectTo(dragged, targetIndex);
       this._canvas.renderAll();
       this._emitObjects();
+      this._scheduleSave();
     };
     on(EVENTS.LAYER_REORDER, this._onLayerReorder);
 
@@ -69,8 +98,49 @@ class EditorBodyContainer extends LitElement {
       if (!obj) return;
       obj._layerName = name.trim() || null;
       this._emitObjects();
+      this._scheduleSave();
     };
     on(EVENTS.LAYER_RENAME, this._onLayerRename);
+
+    this._onLayerDeleted = ({ id }) => {
+      const obj = this._canvas.getObjects().find(o => o._layerId === id);
+      if (obj) this._canvas.remove(obj);
+    };
+    on(EVENTS.LAYER_DELETED, this._onLayerDeleted);
+
+    this._onToolOptionsChanged = () => this._scheduleSave();
+    on(EVENTS.TOOL_OPTIONS_CHANGED, this._onToolOptionsChanged);
+
+    this._onVersionSelected = (version) => this._loadVersion(version);
+    on(EVENTS.VERSION_SELECTED, this._onVersionSelected);
+  }
+
+  _drawGrid() {
+    if (!gridState.showGrid) return;
+    const ctx  = this._canvas.contextContainer;
+    const vt   = this._canvas.viewportTransform;
+    const zoom = vt[0];
+    const step = gridState.size * zoom;
+    const startX = ((vt[4] % step) + step) % step;
+    const startY = ((vt[5] % step) + step) % step;
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-grid').trim() || '#dddddd';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = startX; x < w; x += step) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+    }
+    for (let y = startY; y < h; y += step) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+    }
+    ctx.stroke();
+    ctx.restore();
   }
 
   _emitObjects() {
@@ -78,6 +148,37 @@ class EditorBodyContainer extends LitElement {
       .map(o => ({ id: o._layerId, type: o.type, name: o._layerName ?? null }))
       .reverse();
     emit(EVENTS.CANVAS_OBJECTS_UPDATED, items);
+  }
+
+  _scheduleSave() {
+    if (this._loading) return;
+    clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(async () => {
+      const id = getItem(LOCAL.CURRENT_VERSION_ID);
+      if (!id) return;
+      let version;
+      try { version = await getLocalDbVersionById(id); } catch { return; }
+      if (!version) return;
+      emit(EVENTS.VERSION_SAVING);
+      version.data = this._canvas.toJSON(['_layerId', '_layerName']);
+      version.updatedAt = new Date();
+      try { await saveLocalDbVersion(version); } catch { return; }
+      emit(EVENTS.VERSION_SAVED, version);
+    }, 1000);
+  }
+
+  async _loadVersion(version) {
+    this._loading = true;
+    if (version?.data && Object.keys(version.data).length > 0) {
+      await this._canvas.loadFromJSON(version.data);
+      this._canvas.renderAll();
+    } else {
+      this._canvas.clear();
+      this._canvas.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--color-canvas-bg').trim() || '#ffffff';
+      this._canvas.renderAll();
+    }
+    this._loading = false;
+    this._emitObjects();
   }
 
   _switchTool(id) {
@@ -96,10 +197,15 @@ class EditorBodyContainer extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._resizeObserver?.disconnect();
-    off(EVENTS.TOOL_CHANGED, this._onToolChanged);
-    off(EVENTS.LAYER_SELECT, this._onLayerSelect);
-    off(EVENTS.LAYER_REORDER, this._onLayerReorder);
-    off(EVENTS.LAYER_RENAME, this._onLayerRename);
+    off(EVENTS.TOOL_CHANGED,        this._onToolChanged);
+    off(EVENTS.LAYER_SELECT,        this._onLayerSelect);
+    off(EVENTS.LAYER_REORDER,       this._onLayerReorder);
+    off(EVENTS.LAYER_RENAME,        this._onLayerRename);
+    off(EVENTS.LAYER_DELETED,       this._onLayerDeleted);
+    off(EVENTS.GRID_CHANGED,        this._onGridChanged);
+    off(EVENTS.TOOL_OPTIONS_CHANGED, this._onToolOptionsChanged);
+    off(EVENTS.VERSION_SELECTED,    this._onVersionSelected);
+    clearTimeout(this._saveTimer);
     this._canvas?.dispose();
   }
 

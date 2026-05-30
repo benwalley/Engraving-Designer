@@ -24,7 +24,7 @@ class ZoomControl extends LitElement {
       background: transparent;
       color: var(--color-text);
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       font-size: 16px;
       line-height: 1;
     }
@@ -43,7 +43,7 @@ class ZoomControl extends LitElement {
     .value {
       min-width: 4ch;
       text-align: center;
-      font-size: 0.875rem;
+      font-size: var(--font-size-sm);
       color: var(--color-text);
       font-variant-numeric: tabular-nums;
     }

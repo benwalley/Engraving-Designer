@@ -2,10 +2,10 @@ import { css } from 'lit';
 
 export const buttonStyles = css`
   button {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     padding: 6px 12px;
     border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: var(--color-bg);
     color: var(--color-text);
     cursor: pointer;

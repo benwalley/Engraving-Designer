@@ -4,17 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Engraving Designer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/css/header.css">
     <link rel="stylesheet" href="/src/css/variables.css">
     <link rel="stylesheet" href="/src/css/global.css">
   </head>
   <body>
     <header>
-      <div>Logo</div>
+      <app-logo></app-logo>
       <div>Undo/Redo</div>
       <saving-indicator></saving-indicator>
       <version-picker></version-picker>
       <create-copy-button></create-copy-button>
+      <delete-version-button></delete-version-button>
       <zoom-control></zoom-control>
       <dark-light-toggle></dark-light-toggle>
     </header>

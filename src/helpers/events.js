@@ -12,6 +12,8 @@ export const EVENTS = {
   LAYER_SELECT:           'layer:select',
   LAYER_REORDER:          'layer:reorder',
   LAYER_RENAME:           'layer:rename',
+  LAYER_DELETED:          'layer:deleted',
+  GRID_CHANGED:           'grid:changed',
 };
 
 const listeners = new Map();

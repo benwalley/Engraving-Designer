@@ -4,6 +4,7 @@ import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { getItem, setItem, LOCAL } from '../../helpers/local-storage.js';
 import { buttonStyles } from '../component-styles/button-styles.js';
 import { scrollbarStyles } from '../component-styles/scrollbar-styles.js';
+import { DEFAULT_VERSION } from '../../defaults.js';
 import '../icons/icon-chevron-down.js';
 
 class VersionPicker extends LitElement {
@@ -25,7 +26,7 @@ class VersionPicker extends LitElement {
       }
 
       input[type='text'] {
-        font-size: 0.875rem;
+        font-size: var(--font-size-sm);
         padding: 6px 28px 6px 10px;
         border: none;
         color: var(--color-text);
@@ -64,7 +65,7 @@ class VersionPicker extends LitElement {
       .chevron-btn:focus-visible {
         outline: 2px solid var(--color-accent);
         outline-offset: 1px;
-        border-radius: 3px;
+        border-radius: var(--radius-sm);
       }
 
       icon-chevron-down {
@@ -85,7 +86,7 @@ class VersionPicker extends LitElement {
         padding: 4px;
         list-style: none;
         border: 1px solid var(--color-border);
-        border-radius: 6px;
+        border-radius: var(--radius-md);
         background: var(--color-bg);
         box-shadow: var(--shadow-dropdown);
         z-index: 100;
@@ -99,9 +100,9 @@ class VersionPicker extends LitElement {
 
       .option {
         padding: 6px 10px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         cursor: pointer;
-        font-size: 0.875rem;
+        font-size: var(--font-size-sm);
         display: flex;
         flex-direction: row;
         justify-content: space-between;
@@ -149,13 +150,22 @@ class VersionPicker extends LitElement {
 
     this._boundHandleDelete  = (id) => this.handleDelete(id);
     this._boundClickOutside  = (e) => this._handleClickOutside(e);
+    this._boundVersionSelected = async () => {
+      this.versions = await getLocalDbVersions();
+      const currentId = getItem(LOCAL.CURRENT_VERSION_ID);
+      const selected = this.versions.find(v => v.id === currentId);
+      if (selected) {
+        this.selectedId = selected.id;
+        this._editName  = selected.name ?? '';
+      }
+    };
   }
 
   async connectedCallback() {
     super.connectedCallback();
     await this.setCurrentVersionBasedOnSavedState();
     on(EVENTS.VERSION_DELETED, this._boundHandleDelete);
-    on(EVENTS.VERSION_SELECTED, () => this.setCurrentVersionBasedOnSavedState())
+    on(EVENTS.VERSION_SELECTED, this._boundVersionSelected);
     document.addEventListener('click', this._boundClickOutside);
   }
 
@@ -169,15 +179,25 @@ class VersionPicker extends LitElement {
       const selected = match ?? saved[0];
       this.selectedId = selected.id;
       this._editName  = selected.name ?? '';
+      setItem(LOCAL.CURRENT_VERSION_ID, selected.id);
+      emit(EVENTS.VERSION_SELECTED, selected);
       emit(EVENTS.VERSION_SAVED);
     } else {
-      // TODO cancel version saving
+      const newVersion = { ...DEFAULT_VERSION, id: crypto.randomUUID(), createdAt: new Date(), updatedAt: new Date() };
+      await saveLocalDbVersion(newVersion);
+      setItem(LOCAL.CURRENT_VERSION_ID, newVersion.id);
+      this.versions   = [newVersion];
+      this.selectedId = newVersion.id;
+      this._editName  = newVersion.name;
+      emit(EVENTS.VERSION_SELECTED, newVersion);
+      emit(EVENTS.VERSION_SAVED, newVersion);
     }
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    off(EVENTS.VERSION_DELETED, this._boundHandleDelete);
+    off(EVENTS.VERSION_DELETED,  this._boundHandleDelete);
+    off(EVENTS.VERSION_SELECTED, this._boundVersionSelected);
     document.removeEventListener('click', this._boundClickOutside);
   }
 
@@ -187,7 +207,7 @@ class VersionPicker extends LitElement {
 
   get _selectedIndex() {
     for(let i = 0; i < this.versions.length; i++) {
-      const version = versions[i];
+      const version = this.versions[i];
       if(version.id === this.selectedId) return i;
     }
     return -1;
@@ -195,6 +215,11 @@ class VersionPicker extends LitElement {
 
   async handleDelete(id) {
     this.versions = await getLocalDbVersions();
+    if (this.versions.length === 0) {
+      await this.setCurrentVersionBasedOnSavedState();
+      if (this.open) this._closeDropdown(false);
+      return;
+    }
     if (this.selectedId === id) {
       const first = this.versions[0] ?? null;
       this.selectedId = first?.id ?? null;
@@ -243,10 +268,9 @@ class VersionPicker extends LitElement {
 
   debouncedSaveName(name) {
     clearTimeout(this.debounceTimeout);
-      window.setTimeout(() => {
-        this._saveRename();
-      },
-    1000)
+    this.debounceTimeout = window.setTimeout(() => {
+      this._saveRename();
+    }, 1000);
   }
 
   _handleNameKeyDown(e) {

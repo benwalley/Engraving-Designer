@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { on, off, EVENTS } from '../../helpers/events.js';
 import { DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import './shape-options.js';
+import './grid-controls.js';
 
 class TopBarContainer extends LitElement {
   static properties = {
@@ -62,6 +63,7 @@ class TopBarContainer extends LitElement {
   render() {
     return html`
       ${this._showOptions ? html`<shape-options .selectionData=${this._selectionData}></shape-options>` : ''}
+      <grid-controls></grid-controls>
     `;
   }
 }

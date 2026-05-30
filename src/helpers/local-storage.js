@@ -2,6 +2,8 @@ const STORAGE_KEY = 'engraving-app';
 export const LOCAL = {
   CURRENT_VERSION_ID: "current-version-id",
   THEME: "theme",
+  GRID_SHOW: "grid-show",
+  GRID_SNAP: "grid-snap",
 }
 
 function getStore() {

@@ -8,9 +8,15 @@
 
         /* Typography */
         --font-size-normal: 1rem;
+        --font-size-sm: 0.875rem;
 
         /* Spacing */
         --spacing-normal: 1rem;
+
+        /* Border radius */
+        --radius-sm: 4px;
+        --radius-md: 6px;
+        --radius-lg: 8px;
 
         /* Animations */
         --duration-fast: 150ms;
@@ -24,12 +30,24 @@
         --color-border-hover: #9ca3af;
         --color-text: #111827;
         --color-text-muted: #6b7280;
+        --color-hover: rgba(0, 0, 0, 0.05);
 
         /* Accent (focus rings, selections) */
         --color-accent: #6366f1;
         --color-accent-subtle: #eef2ff;
         --color-accent-subtle-active: #e0e7ff;
         --color-accent-text: #4338ca;
+
+        /* Danger */
+        --color-danger: #dc2626;
+        --color-danger-text: #ffffff;
+
+        /* Canvas */
+        --color-canvas-bg: #ffffff;
+        --color-grid: #dddddd;
+
+        /* Overlays */
+        --color-overlay: rgba(0, 0, 0, 0.4);
 
         /* Shadows */
         --shadow-dropdown: 0 4px 12px rgb(0 0 0 / 0.1);
@@ -43,11 +61,20 @@
             --color-border-hover: #6b7280;
             --color-text: #f9fafb;
             --color-text-muted: #9ca3af;
+            --color-hover: rgba(255, 255, 255, 0.05);
 
             --color-accent: #818cf8;
             --color-accent-subtle: #1e1b4b;
             --color-accent-subtle-active: #312e81;
             --color-accent-text: #a5b4fc;
+
+            --color-danger: #f87171;
+            --color-danger-text: #ffffff;
+
+            --color-canvas-bg: #ffffff;
+            --color-grid: #374151;
+
+            --color-overlay: rgba(0, 0, 0, 0.6);
 
             --shadow-dropdown: 0 4px 12px rgb(0 0 0 / 0.4);
         }
@@ -69,10 +96,16 @@
         --color-border-hover: #9ca3af;
         --color-text: #111827;
         --color-text-muted: #6b7280;
+        --color-hover: rgba(0, 0, 0, 0.05);
         --color-accent: #6366f1;
         --color-accent-subtle: #eef2ff;
         --color-accent-subtle-active: #e0e7ff;
         --color-accent-text: #4338ca;
+        --color-danger: #dc2626;
+        --color-danger-text: #ffffff;
+        --color-canvas-bg: #ffffff;
+        --color-grid: #dddddd;
+        --color-overlay: rgba(0, 0, 0, 0.4);
         --shadow-dropdown: 0 4px 12px rgb(0 0 0 / 0.1);
     }
 
@@ -83,10 +116,16 @@
         --color-border-hover: #6b7280;
         --color-text: #f9fafb;
         --color-text-muted: #9ca3af;
+        --color-hover: rgba(255, 255, 255, 0.05);
         --color-accent: #818cf8;
         --color-accent-subtle: #1e1b4b;
         --color-accent-subtle-active: #312e81;
         --color-accent-text: #a5b4fc;
+        --color-danger: #f87171;
+        --color-danger-text: #ffffff;
+        --color-canvas-bg: #ffffff;
+        --color-grid: #374151;
+        --color-overlay: rgba(0, 0, 0, 0.6);
         --shadow-dropdown: 0 4px 12px rgb(0 0 0 / 0.4);
     }
 }

@@ -28,7 +28,7 @@ class LayersPanel extends LitElement {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--color-text-secondary, #888);
+      color: var(--color-text-muted);
       padding: 0 0 8px 0;
       border-bottom: 1px solid var(--color-border);
       margin-bottom: 4px;
@@ -51,28 +51,28 @@ class LayersPanel extends LitElement {
       border-radius: 4px;
       cursor: pointer;
       font-size: 13px;
-      color: var(--color-text, #222);
+      color: var(--color-text);
       user-select: none;
       border: 1px solid transparent;
     }
 
     li:hover {
-      background: var(--color-hover, rgba(0,0,0,0.05));
+      background: var(--color-hover);
     }
 
     li.active {
-      background: var(--color-accent-subtle, #e8f0fe);
-      border-color: var(--color-accent, #2563eb);
+      background: var(--color-accent-subtle);
+      border-color: var(--color-accent);
     }
 
     li.drag-over {
-      border-color: var(--color-accent, #2563eb);
-      background: var(--color-hover, rgba(0,0,0,0.05));
+      border-color: var(--color-accent);
+      background: var(--color-hover);
     }
 
     .drag-handle {
       cursor: grab;
-      color: var(--color-text-secondary, #aaa);
+      color: var(--color-text-muted);
       font-size: 12px;
       flex-shrink: 0;
     }
@@ -89,9 +89,9 @@ class LayersPanel extends LitElement {
       width: 100%;
       font-size: 13px;
       font-family: inherit;
-      color: var(--color-text, #222);
-      background: var(--color-surface, #fff);
-      border: 1px solid var(--color-accent, #2563eb);
+      color: var(--color-text);
+      background: var(--color-surface);
+      border: 1px solid var(--color-accent);
       border-radius: 3px;
       padding: 1px 4px;
       outline: none;
@@ -100,14 +100,35 @@ class LayersPanel extends LitElement {
 
     .type-chip {
       font-size: 11px;
-      color: var(--color-text-secondary, #888);
+      color: var(--color-text-muted);
       font-family: monospace;
       flex-shrink: 0;
     }
 
+    .delete-btn {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      padding: 0 2px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      color: var(--color-text-muted);
+      opacity: 0;
+      transition: opacity var(--duration-fast) var(--easing-default), color var(--duration-fast) var(--easing-default);
+    }
+
+    li:hover .delete-btn {
+      opacity: 1;
+    }
+
+    .delete-btn:hover {
+      color: var(--color-danger);
+    }
+
     .empty {
       font-size: 12px;
-      color: var(--color-text-secondary, #aaa);
+      color: var(--color-text-muted);
       text-align: center;
       margin-top: 16px;
     }
@@ -184,6 +205,11 @@ class LayersPanel extends LitElement {
     }
   }
 
+  _handleDelete(e, id) {
+    e.stopPropagation();
+    emit(EVENTS.LAYER_DELETED, { id });
+  }
+
   _handleDragStart(e, id) {
     this._draggedId = id;
     e.dataTransfer.effectAllowed = 'move';
@@ -258,6 +284,7 @@ class LayersPanel extends LitElement {
                   }
                 </span>
                 <span class="type-chip">${item.type}</span>
+                <button class="delete-btn" @click=${(e) => this._handleDelete(e, item.id)} title="Delete layer">×</button>
               </li>
             `)}
           </ul>
