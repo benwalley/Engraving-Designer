@@ -17,6 +17,8 @@ export const EVENTS = {
   HISTORY_CHANGED:        'history:changed',
   UNDO_REQUESTED:         'history:undo',
   REDO_REQUESTED:         'history:redo',
+  SELECT_ITEM_TO_ENGRAVE: 'engrave:select-item',
+  VIEW_3D:                'viewer:3d',
 };
 
 const listeners = new Map();
