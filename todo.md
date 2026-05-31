@@ -1,2 +1,4 @@
- - add contrast and brightness controlls to images
- - make everything grayscale       
+make model picker
+Make 3d viewer
+Make savable snapshots to real DB
+Add undo/redo functionality

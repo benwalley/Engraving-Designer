@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { Canvas as FabricCanvas } from 'fabric';
+import { Canvas as FabricCanvas, ActiveSelection } from 'fabric';
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { TOOL_MAP, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import { SelectTool } from '../../tools/select-tool.js';
@@ -113,6 +113,11 @@ class EditorBodyContainer extends LitElement {
 
     this._onVersionSelected = (version) => this._loadVersion(version);
     on(EVENTS.VERSION_SELECTED, this._onVersionSelected);
+
+    this._clipboard = null;
+    this._pasteOffset = 0;
+    this._onCopyPaste = (e) => this._handleCopyPaste(e);
+    document.addEventListener('keydown', this._onCopyPaste);
   }
 
   _drawGrid() {
@@ -205,8 +210,57 @@ class EditorBodyContainer extends LitElement {
     off(EVENTS.GRID_CHANGED,        this._onGridChanged);
     off(EVENTS.TOOL_OPTIONS_CHANGED, this._onToolOptionsChanged);
     off(EVENTS.VERSION_SELECTED,    this._onVersionSelected);
+    document.removeEventListener('keydown', this._onCopyPaste);
     clearTimeout(this._saveTimer);
     this._canvas?.dispose();
+  }
+
+  _handleCopyPaste(e) {
+    const isC = e.key === 'c' && (e.ctrlKey || e.metaKey);
+    const isV = e.key === 'v' && (e.ctrlKey || e.metaKey);
+    if (!isC && !isV) return;
+    if (e.target.closest('input, textarea, [contenteditable]')) return;
+    const active = this._canvas.getActiveObject();
+    if (active?.isEditing) return;
+    if (isC) this._copy(active);
+    if (isV) this._paste();
+  }
+
+  _copy(active) {
+    if (!active) return;
+    this._clipboard = active.type === 'ActiveSelection' ? active.getObjects() : active;
+    this._pasteOffset = 1;
+  }
+
+  async _paste() {
+    if (!this._clipboard) return;
+    const offset = this._pasteOffset * 20;
+    this._pasteOffset++;
+    const sources = Array.isArray(this._clipboard) ? this._clipboard : [this._clipboard];
+    const canvasObjects = new Set(this._canvas.getObjects());
+    const valid = sources.filter(o => canvasObjects.has(o));
+    if (valid.length === 0) {
+      this._clipboard = null;
+      this._pasteOffset = 0;
+      return;
+    }
+    const clones = await Promise.all(valid.map(o => o.clone(['_layerId', '_layerName'])));
+    clones.forEach(clone => {
+      clone._layerId = crypto.randomUUID();
+      clone._layerName = null;
+      clone.set({ left: clone.left + offset, top: clone.top + offset, selectable: true, evented: true });
+      clone.setCoords();
+      this._canvas.add(clone);
+    });
+    if (clones.length === 1) {
+      this._canvas.setActiveObject(clones[0]);
+      this._canvas.fire('selection:created', { selected: clones });
+    } else {
+      const selection = new ActiveSelection(clones, { canvas: this._canvas });
+      this._canvas.setActiveObject(selection);
+      this._canvas.fire('selection:created', { selected: clones });
+    }
+    this._canvas.renderAll();
   }
 
   render() {
