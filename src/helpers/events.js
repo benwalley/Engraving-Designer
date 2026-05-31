@@ -14,6 +14,9 @@ export const EVENTS = {
   LAYER_RENAME:           'layer:rename',
   LAYER_DELETED:          'layer:deleted',
   GRID_CHANGED:           'grid:changed',
+  HISTORY_CHANGED:        'history:changed',
+  UNDO_REQUESTED:         'history:undo',
+  REDO_REQUESTED:         'history:redo',
 };
 
 const listeners = new Map();

@@ -7,6 +7,7 @@ import { initPanZoom } from '../../canvas/pan-zoom.js';
 import { getItem, LOCAL } from '../../helpers/local-storage.js';
 import { getLocalDbVersionById, saveLocalDbVersion } from '../../helpers/local-db.js';
 import { gridState } from '../../helpers/grid.js';
+import { History } from '../../helpers/history.js';
 
 class EditorBodyContainer extends LitElement {
   static styles = css`
@@ -19,6 +20,13 @@ class EditorBodyContainer extends LitElement {
   firstUpdated() {
     this._saveTimer = null;
     this._loading = false;
+    this._history = new History();
+    this._currentSnapshot = null;
+    this._isRestoringHistory = false;
+    this._textEditing = false;
+    this._justExitedTextEditing = false;
+    this._preChangeSnapshot = null;
+    this._historyDebounceTimer = null;
 
     const canvasEl = this.shadowRoot.querySelector('canvas');
     const style = getComputedStyle(document.documentElement);
@@ -53,17 +61,38 @@ class EditorBodyContainer extends LitElement {
 
     this._onObjectAdded = ({ target }) => {
       if (!target._layerId) target._layerId = crypto.randomUUID();
+      if (this._isRestoringHistory || this._loading) return;
+      this._pushHistoryEntry();
       this._emitObjects();
       this._scheduleSave();
     };
     this._onObjectRemoved = () => {
+      if (this._isRestoringHistory || this._loading) return;
+      this._pushHistoryEntry();
       this._emitObjects();
       this._scheduleSave();
     };
-    this._onObjectModified = () => this._scheduleSave();
+    this._onObjectModified = () => {
+      if (this._isRestoringHistory || this._loading || this._textEditing || this._justExitedTextEditing) {
+        if (!this._isRestoringHistory && !this._loading) this._scheduleSave();
+        return;
+      }
+      this._pushHistoryEntry();
+      this._scheduleSave();
+    };
     this._canvas.on('object:added', this._onObjectAdded);
     this._canvas.on('object:removed', this._onObjectRemoved);
     this._canvas.on('object:modified', this._onObjectModified);
+    this._canvas.on('text:editing:entered', () => { this._textEditing = true; });
+    this._canvas.on('text:editing:exited', () => {
+      this._textEditing = false;
+      this._justExitedTextEditing = true;
+      setTimeout(() => { this._justExitedTextEditing = false; }, 0);
+      if (!this._isRestoringHistory) {
+        this._pushHistoryEntry();
+        this._scheduleSave();
+      }
+    });
 
     this._onToolChanged = ({ id }) => this._switchTool(id);
     on(EVENTS.TOOL_CHANGED, this._onToolChanged);
@@ -88,6 +117,7 @@ class EditorBodyContainer extends LitElement {
       const targetIndex = this._canvas.getObjects().indexOf(target);
       this._canvas.moveObjectTo(dragged, targetIndex);
       this._canvas.renderAll();
+      this._pushHistoryEntry();
       this._emitObjects();
       this._scheduleSave();
     };
@@ -97,6 +127,7 @@ class EditorBodyContainer extends LitElement {
       const obj = this._canvas.getObjects().find(o => o._layerId === id);
       if (!obj) return;
       obj._layerName = name.trim() || null;
+      this._debouncedHistoryEntry();
       this._emitObjects();
       this._scheduleSave();
     };
@@ -108,11 +139,19 @@ class EditorBodyContainer extends LitElement {
     };
     on(EVENTS.LAYER_DELETED, this._onLayerDeleted);
 
-    this._onToolOptionsChanged = () => this._scheduleSave();
+    this._onToolOptionsChanged = () => {
+      this._debouncedHistoryEntry();
+      this._scheduleSave();
+    };
     on(EVENTS.TOOL_OPTIONS_CHANGED, this._onToolOptionsChanged);
 
     this._onVersionSelected = (version) => this._loadVersion(version);
     on(EVENTS.VERSION_SELECTED, this._onVersionSelected);
+
+    this._onUndoRequested = () => this._undo();
+    this._onRedoRequested = () => this._redo();
+    on(EVENTS.UNDO_REQUESTED, this._onUndoRequested);
+    on(EVENTS.REDO_REQUESTED, this._onRedoRequested);
 
     this._clipboard = null;
     this._pasteOffset = 0;
@@ -156,7 +195,7 @@ class EditorBodyContainer extends LitElement {
   }
 
   _scheduleSave() {
-    if (this._loading) return;
+    if (this._loading || this._isRestoringHistory) return;
     clearTimeout(this._saveTimer);
     this._saveTimer = setTimeout(async () => {
       const id = getItem(LOCAL.CURRENT_VERSION_ID);
@@ -174,6 +213,8 @@ class EditorBodyContainer extends LitElement {
 
   async _loadVersion(version) {
     this._loading = true;
+    clearTimeout(this._historyDebounceTimer);
+    this._preChangeSnapshot = null;
     if (version?.data && Object.keys(version.data).length > 0) {
       await this._canvas.loadFromJSON(version.data);
       this._canvas.renderAll();
@@ -183,6 +224,9 @@ class EditorBodyContainer extends LitElement {
       this._canvas.renderAll();
     }
     this._loading = false;
+    this._history.clear();
+    this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName']);
+    this._emitHistory();
     this._emitObjects();
   }
 
@@ -210,20 +254,28 @@ class EditorBodyContainer extends LitElement {
     off(EVENTS.GRID_CHANGED,        this._onGridChanged);
     off(EVENTS.TOOL_OPTIONS_CHANGED, this._onToolOptionsChanged);
     off(EVENTS.VERSION_SELECTED,    this._onVersionSelected);
+    off(EVENTS.UNDO_REQUESTED,      this._onUndoRequested);
+    off(EVENTS.REDO_REQUESTED,      this._onRedoRequested);
     document.removeEventListener('keydown', this._onCopyPaste);
     clearTimeout(this._saveTimer);
+    clearTimeout(this._historyDebounceTimer);
     this._canvas?.dispose();
   }
 
   _handleCopyPaste(e) {
     const isC = e.key === 'c' && (e.ctrlKey || e.metaKey);
     const isV = e.key === 'v' && (e.ctrlKey || e.metaKey);
-    if (!isC && !isV) return;
+    const isZ = e.key === 'z' && (e.ctrlKey || e.metaKey);
+    const isY = e.key === 'y' && (e.ctrlKey || e.metaKey);
+    if (!isC && !isV && !isZ && !isY) return;
     if (e.target.closest('input, textarea, [contenteditable]')) return;
     const active = this._canvas.getActiveObject();
     if (active?.isEditing) return;
     if (isC) this._copy(active);
     if (isV) this._paste();
+    if (isZ && e.shiftKey) { e.preventDefault(); this._redo(); }
+    else if (isZ) { e.preventDefault(); this._undo(); }
+    if (isY) { e.preventDefault(); this._redo(); }
   }
 
   _copy(active) {
@@ -261,6 +313,53 @@ class EditorBodyContainer extends LitElement {
       this._canvas.fire('selection:created', { selected: clones });
     }
     this._canvas.renderAll();
+  }
+
+  _emitHistory() {
+    emit(EVENTS.HISTORY_CHANGED, { canUndo: this._history.canUndo, canRedo: this._history.canRedo });
+  }
+
+  _pushHistoryEntry() {
+    if (this._isRestoringHistory || this._loading) return;
+    this._history.push(this._currentSnapshot);
+    this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName']);
+    this._emitHistory();
+  }
+
+  _debouncedHistoryEntry() {
+    if (this._isRestoringHistory || this._loading) return;
+    if (!this._preChangeSnapshot) this._preChangeSnapshot = this._currentSnapshot;
+    clearTimeout(this._historyDebounceTimer);
+    this._historyDebounceTimer = setTimeout(() => {
+      this._history.push(this._preChangeSnapshot);
+      this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName']);
+      this._preChangeSnapshot = null;
+      this._emitHistory();
+    }, 800);
+  }
+
+  async _undo() {
+    if (!this._history.canUndo) return;
+    this._isRestoringHistory = true;
+    const prev = this._history.undo(this._currentSnapshot);
+    this._currentSnapshot = prev;
+    await this._canvas.loadFromJSON(prev);
+    this._canvas.renderAll();
+    this._emitObjects();
+    this._isRestoringHistory = false;
+    this._emitHistory();
+  }
+
+  async _redo() {
+    if (!this._history.canRedo) return;
+    this._isRestoringHistory = true;
+    const next = this._history.redo(this._currentSnapshot);
+    this._currentSnapshot = next;
+    await this._canvas.loadFromJSON(next);
+    this._canvas.renderAll();
+    this._emitObjects();
+    this._isRestoringHistory = false;
+    this._emitHistory();
   }
 
   render() {

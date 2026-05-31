@@ -8,7 +8,6 @@ import { ImageTool } from './image-tool.js';
 
 // Side-effect imports so icon elements are registered
 import '../components/icons/icon-tool-select.js';
-import '../components/icons/icon-tool-move.js';
 import '../components/icons/icon-tool-rectangle.js';
 import '../components/icons/icon-tool-ellipse.js';
 import '../components/icons/icon-tool-text.js';
@@ -21,7 +20,6 @@ export const DEFAULT_TOOL_ID = 'select';
 // Tool: null means the button exists but has no canvas behaviour yet.
 export const TOOLS = [
   { id: 'select',    label: 'Select',    icon: html`<icon-tool-select></icon-tool-select>`,       Tool: SelectTool },
-  { id: 'move',      label: 'Move',      icon: html`<icon-tool-move></icon-tool-move>`,           Tool: null },
   { id: 'rectangle', label: 'Rectangle', icon: html`<icon-tool-rectangle></icon-tool-rectangle>`, Tool: RectangleTool },
   { id: 'ellipse',   label: 'Ellipse',   icon: html`<icon-tool-ellipse></icon-tool-ellipse>`,     Tool: EllipseTool },
   { id: 'text',      label: 'Text',      icon: html`<icon-tool-text></icon-tool-text>`,           Tool: TextTool },
