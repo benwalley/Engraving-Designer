@@ -402,6 +402,10 @@ class ShapeOptions extends LitElement {
       this._contrast   = Math.round((this.selectionData.contrast   ?? 0) * 100);
       this._gamma      = Math.round((this.selectionData.gamma      ?? 1.0) * 100);
       this._inverted   = this.selectionData.inverted ?? false;
+      const stroke      = parseGray(this.selectionData.stroke ?? '#000000');
+      this._strokeDark  = stroke.dark;
+      this._strokeAlpha = stroke.alpha;
+      this._strokeWidth = this.selectionData.strokeWidth ?? 0;
     } else if (this._type === 'i-text') {
       const fill        = parseGray(this.selectionData.fill ?? '#000000');
       this._fillDark    = fill.dark;
@@ -672,7 +676,44 @@ class ShapeOptions extends LitElement {
           @click=${() => {
             this._inverted = !this._inverted;
             this._change('inverted', this._inverted);
-          }}>Inv</button>
+          }}>Invert</button>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <span class="group-label">Border</span>
+        <div class="slider-wrap">
+          <input type="range" class="shade-slider" min="0" max="100" step="1"
+            .value=${this._strokeDark}
+            @input=${e => {
+              this._strokeDark = +e.target.value;
+              this._change('stroke', grayToRgba(this._strokeDark, this._strokeAlpha));
+            }} />
+          <span class="slider-readout">${this._strokeDark}%</span>
+        </div>
+        <span class="group-label">Opacity</span>
+        <div class="slider-wrap">
+          <input type="range" min="0" max="100" step="1"
+            .value=${this._strokeAlpha}
+            style="--pct: ${this._strokeAlpha}%"
+            @input=${e => {
+              this._strokeAlpha = +e.target.value;
+              this._change('stroke', grayToRgba(this._strokeDark, this._strokeAlpha));
+            }} />
+          <span class="slider-readout">${this._strokeAlpha}%</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <span class="group-label">Width</span>
+        <div class="stepper">
+          <button class="stepper-btn" @click=${() => this._step('_strokeWidth', this._strokeWidth, -1)}>−</button>
+          <span class="stepper-value">${this._strokeWidth}</span>
+          <button class="stepper-btn" @click=${() => this._step('_strokeWidth', this._strokeWidth, 1)}>+</button>
+        </div>
       </div>
     `;
   }

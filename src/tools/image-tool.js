@@ -74,6 +74,7 @@ export class ImageTool {
       originX: 'left',
       originY: 'top',
       lockUniScaling: true,
+      strokeWidth: 0,
       selectable: true,
       evented: true,
     });

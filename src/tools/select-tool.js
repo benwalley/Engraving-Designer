@@ -52,12 +52,14 @@ export class SelectTool {
       } else if (obj.type === 'image') {
         const f = readImageFilters(obj);
         emit(EVENTS.SELECTION_CHANGED, {
-          id:         obj._layerId,
-          type:       'image',
-          brightness: f.brightness,
-          contrast:   f.contrast,
-          gamma:      f.gamma,
-          inverted:   f.inverted,
+          id:          obj._layerId,
+          type:        'image',
+          brightness:  f.brightness,
+          contrast:    f.contrast,
+          gamma:       f.gamma,
+          inverted:    f.inverted,
+          stroke:      obj.stroke      ?? null,
+          strokeWidth: obj.strokeWidth ?? 0,
         });
       } else {
         emit(EVENTS.SELECTION_CHANGED, {
@@ -76,6 +78,9 @@ export class SelectTool {
       if (!obj) return;
       if (obj.type === 'image') {
         applyImageFilters(obj, canvas, { ...readImageFilters(obj), ...data });
+        if (data.stroke      !== undefined) obj.set('stroke',      data.stroke);
+        if (data.strokeWidth !== undefined) obj.set('strokeWidth', data.strokeWidth);
+        canvas.renderAll();
         return;
       }
       if (data.fill        !== undefined) obj.set('fill',        data.fill);
