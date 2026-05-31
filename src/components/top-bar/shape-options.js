@@ -2,14 +2,44 @@ import { LitElement, html, css } from 'lit';
 import { emit, EVENTS } from '../../helpers/events.js';
 
 const FONTS = [
+  // System
   'Arial',
-  'Arial Narrow',
   'Courier New',
   'Georgia',
   'Impact',
   'Times New Roman',
-  'Trebuchet MS',
   'Verdana',
+  // Classic Serif
+  'EB Garamond',
+  'Libre Baskerville',
+  'Lora',
+  'Playfair Display',
+  // Modern Sans
+  'Montserrat',
+  'Open Sans',
+  'Raleway',
+  // Condensed / Block
+  'Bebas Neue',
+  'Oswald',
+  // Script / Cursive
+  'Dancing Script',
+  'Great Vibes',
+  'Pacifico',
+  'Pinyon Script',
+  'Satisfy',
+  // Display / Decorative
+  'Abril Fatface',
+  'Lobster',
+  // Slab Serif
+  'Roboto Slab',
+  // Mono
+  'Roboto Mono',
+  // Handwritten
+  'Caveat',
+  'Patrick Hand',
+  // Historical / Ornate
+  'Cinzel',
+  'UnifrakturMaguntia',
 ];
 
 function parseGray(value) {
@@ -44,6 +74,7 @@ class ShapeOptions extends LitElement {
     _rx:          { state: true },
     _type:        { state: true },
     _fontFamily:  { state: true },
+    _fontDropOpen:{ state: true },
     _fontSize:    { state: true },
     _fontWeight:  { state: true },
     _fontStyle:   { state: true },
@@ -202,26 +233,76 @@ class ShapeOptions extends LitElement {
       user-select: none;
     }
 
-    /* ── Font select ── */
-    .font-select {
+    /* ── Font picker ── */
+    .font-picker {
+      position: relative;
+    }
+
+    .font-trigger {
       height: 26px;
+      min-width: 160px;
       border: 1px solid var(--color-border);
       border-radius: 6px;
       background: var(--color-bg);
       color: var(--color-text);
-      font-size: 12px;
-      padding: 0 6px;
+      font-size: 13px;
+      padding: 0 8px;
       cursor: pointer;
-      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
       transition: border-color var(--duration-fast) var(--easing-default);
     }
 
-    .font-select:hover {
+    .font-trigger:hover {
       border-color: var(--color-border-hover);
     }
 
-    .font-select:focus {
+    .font-trigger.open {
       border-color: var(--color-accent);
+    }
+
+    .font-trigger-arrow {
+      font-size: 9px;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+      font-family: sans-serif;
+    }
+
+    .font-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      z-index: 1000;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+      max-height: 280px;
+      overflow-y: auto;
+      min-width: 200px;
+      padding: 4px 0;
+    }
+
+    .font-option {
+      padding: 7px 12px;
+      font-size: 15px;
+      cursor: pointer;
+      white-space: nowrap;
+      color: var(--color-text);
+      transition: background var(--duration-fast) var(--easing-default);
+    }
+
+    .font-option:hover {
+      background: var(--color-accent-subtle);
+    }
+
+    .font-option.selected {
+      background: var(--color-accent-subtle);
+      color: var(--color-accent);
     }
 
     /* ── Style toggles (B / I / U) ── */
@@ -272,6 +353,7 @@ class ShapeOptions extends LitElement {
     this._rx          = 0;
     this._type        = '';
     this._fontFamily  = 'Arial';
+    this._fontDropOpen = false;
     this._fontSize    = 24;
     this._fontWeight  = 'normal';
     this._fontStyle   = 'normal';
@@ -280,6 +362,35 @@ class ShapeOptions extends LitElement {
     this._contrast    = 0;
     this._gamma       = 100;
     this._inverted    = false;
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._closeFontDrop();
+  }
+
+  _openFontDrop() {
+    this._fontDropOpen = true;
+    this._outsideClick = (e) => {
+      if (!this.renderRoot.contains(e.composedPath()[0])) {
+        this._closeFontDrop();
+      }
+    };
+    setTimeout(() => document.addEventListener('click', this._outsideClick), 0);
+  }
+
+  _closeFontDrop() {
+    this._fontDropOpen = false;
+    if (this._outsideClick) {
+      document.removeEventListener('click', this._outsideClick);
+      this._outsideClick = null;
+    }
+  }
+
+  _selectFont(font) {
+    this._fontFamily = font;
+    this._change('fontFamily', font);
+    this._closeFontDrop();
   }
 
   willUpdate(changedProps) {
@@ -357,14 +468,25 @@ class ShapeOptions extends LitElement {
 
       <div class="group">
         <span class="group-label">Font</span>
-        <select class="font-select"
-          .value=${this._fontFamily}
-          @change=${e => {
-            this._fontFamily = e.target.value;
-            this._change('fontFamily', e.target.value);
-          }}>
-          ${FONTS.map(f => html`<option value=${f} ?selected=${f === this._fontFamily}>${f}</option>`)}
-        </select>
+        <div class="font-picker">
+          <button class="font-trigger ${this._fontDropOpen ? 'open' : ''}"
+            style="font-family: '${this._fontFamily}'"
+            @click=${() => this._fontDropOpen ? this._closeFontDrop() : this._openFontDrop()}>
+            ${this._fontFamily}
+            <span class="font-trigger-arrow">▾</span>
+          </button>
+          ${this._fontDropOpen ? html`
+            <div class="font-dropdown">
+              ${FONTS.map(f => html`
+                <div class="font-option ${f === this._fontFamily ? 'selected' : ''}"
+                     style="font-family: '${f}'"
+                     @click=${() => this._selectFont(f)}>
+                  ${f}
+                </div>
+              `)}
+            </div>
+          ` : ''}
+        </div>
       </div>
 
       <div class="sep"></div>
