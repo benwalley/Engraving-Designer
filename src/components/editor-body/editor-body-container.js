@@ -348,6 +348,7 @@ class EditorBodyContainer extends LitElement {
     this._emitObjects();
     this._isRestoringHistory = false;
     this._emitHistory();
+    this._scheduleSave();
   }
 
   async _redo() {
@@ -360,6 +361,7 @@ class EditorBodyContainer extends LitElement {
     this._emitObjects();
     this._isRestoringHistory = false;
     this._emitHistory();
+    this._scheduleSave();
   }
 
   render() {
