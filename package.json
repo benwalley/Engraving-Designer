@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "fabric": "^7.4.0",
-    "lit": "^3.0.0"
+    "lit": "^3.0.0",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"

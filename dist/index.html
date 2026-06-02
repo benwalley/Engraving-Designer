@@ -4,12 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Engraving Designer</title>
-    <script type="module" crossorigin src="/assets/index-BWEzDC-a.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Caveat&family=Cinzel:wght@400;600&family=Dancing+Script&family=EB+Garamond&family=Great+Vibes&family=Libre+Baskerville&family=Lobster&family=Lora&family=Montserrat&family=Open+Sans&family=Oswald&family=Pacifico&family=Patrick+Hand&family=Pinyon+Script&family=Playfair+Display&family=Raleway&family=Roboto+Mono&family=Roboto+Slab&family=Satisfy&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-e7ObkGjU.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-8cuG6BiU.css">
   </head>
   <body>
-    <h1>Engraving Designer</h1>
-
-    <my-greeting name="World"></my-greeting>
+    <header>
+      <app-logo></app-logo>
+      <undo-redo-controls></undo-redo-controls>
+      <saving-indicator></saving-indicator>
+      <version-picker></version-picker>
+      <create-copy-button></create-copy-button>
+      <delete-version-button></delete-version-button>
+      <zoom-control></zoom-control>
+      <dark-light-toggle></dark-light-toggle>
+    </header>
+    <top-bar-container></top-bar-container>
+    <left-bar-container></left-bar-container>
+    <editor-body-container></editor-body-container>
+    <right-bar-container></right-bar-container>
+    <model-picker-modal></model-picker-modal>
+    <viewer-3d-modal></viewer-3d-modal>
 
   </body>
 </html>

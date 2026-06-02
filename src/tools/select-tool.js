@@ -29,6 +29,7 @@ export class SelectTool {
     canvas.selection = true;
     canvas.defaultCursor = 'default';
     canvas.getObjects().forEach(obj => {
+      if (obj._layerId?.startsWith('__boundary__')) return;
       obj.selectable = true;
       obj.evented = true;
       obj.setCoords();

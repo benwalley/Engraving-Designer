@@ -19,6 +19,8 @@ export const EVENTS = {
   REDO_REQUESTED:         'history:redo',
   SELECT_ITEM_TO_ENGRAVE: 'engrave:select-item',
   VIEW_3D:                'viewer:3d',
+  MODEL_SELECTED:         'model:selected',
+  VIEW_3D_CLOSE:          'viewer:3d-close',
 };
 
 const listeners = new Map();

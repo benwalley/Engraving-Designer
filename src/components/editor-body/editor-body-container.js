@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { Canvas as FabricCanvas, ActiveSelection } from 'fabric';
+import { Canvas as FabricCanvas, ActiveSelection, Path as FabricPath } from 'fabric';
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { TOOL_MAP, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import { SelectTool } from '../../tools/select-tool.js';
@@ -8,6 +8,7 @@ import { getItem, LOCAL } from '../../helpers/local-storage.js';
 import { getLocalDbVersionById, saveLocalDbVersion } from '../../helpers/local-db.js';
 import { gridState } from '../../helpers/grid.js';
 import { History } from '../../helpers/history.js';
+import { MODEL_MAP } from '../../models/model-registry.js';
 
 class EditorBodyContainer extends LitElement {
   static styles = css`
@@ -148,6 +149,18 @@ class EditorBodyContainer extends LitElement {
     this._onVersionSelected = (version) => this._loadVersion(version);
     on(EVENTS.VERSION_SELECTED, this._onVersionSelected);
 
+    this._onModelSelected = ({ modelId }) => {
+      const model = MODEL_MAP[modelId];
+      if (model) this._applyBoundaryGuide(model).catch(console.error);
+    };
+    on(EVENTS.MODEL_SELECTED, this._onModelSelected);
+
+    // Restore boundary guide if a model was previously selected
+    const savedModelId = getItem(LOCAL.CURRENT_MODEL_ID);
+    if (savedModelId && MODEL_MAP[savedModelId]) {
+      this._applyBoundaryGuide(MODEL_MAP[savedModelId]).catch(console.error);
+    }
+
     this._onUndoRequested = () => this._undo();
     this._onRedoRequested = () => this._redo();
     on(EVENTS.UNDO_REQUESTED, this._onUndoRequested);
@@ -189,9 +202,78 @@ class EditorBodyContainer extends LitElement {
 
   _emitObjects() {
     const items = this._canvas.getObjects()
+      .filter(o => !o._layerId?.startsWith('__boundary__'))
       .map(o => ({ id: o._layerId, type: o.type, name: o._layerName ?? null }))
       .reverse();
     emit(EVENTS.CANVAS_OBJECTS_UPDATED, items);
+  }
+
+  async _applyBoundaryGuide(model) {
+    // Remove any existing boundary guide
+    const existing = this._canvas.getObjects().find(o => o._layerId?.startsWith('__boundary__'));
+    if (existing) this._canvas.remove(existing);
+
+    // Resolve path string: SVG file takes precedence over inline string
+    let pathString = model.boundaryPath ?? null;
+    if (model.boundarySvgPath) {
+      try {
+        const res = await fetch(model.boundarySvgPath);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const svgText = await res.text();
+        const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+        if (doc.querySelector('parsererror')) throw new Error('Invalid SVG');
+        const ds = Array.from(doc.querySelectorAll('path'))
+          .map(p => p.getAttribute('d'))
+          .filter(Boolean);
+        if (!ds.length) throw new Error('No <path> elements found in SVG');
+        pathString = ds.join(' ');
+      } catch (err) {
+        console.warn('[BoundaryGuide] SVG load failed, falling back to boundaryPath:', err.message);
+      }
+    }
+
+    if (!pathString) return;
+
+    const guide = new FabricPath(pathString, {
+      selectable: false,
+      evented: false,
+      excludeFromExport: true,
+      fill: 'rgba(99,102,241,0.07)',
+      fillRule: 'evenodd',
+      stroke: '#6366f1',
+      strokeDashArray: [6, 4],
+      strokeWidth: 1.5,
+      strokeUniform: true,
+      _layerId: '__boundary__' + model.id,
+    });
+
+    // Scale the guide to fill ~90% of the visible canvas area (centered)
+    const vt = this._canvas.viewportTransform;
+    const zoom = vt[0];
+    const panX = vt[4];
+    const panY = vt[5];
+    const visibleWidth  = this._canvas.width  / zoom;
+    const visibleHeight = this._canvas.height / zoom;
+    const centerX = (this._canvas.width  / 2 - panX) / zoom;
+    const centerY = (this._canvas.height / 2 - panY) / zoom;
+
+    const scale = Math.min(
+      (visibleWidth  * 0.9) / guide.width,
+      (visibleHeight * 0.9) / guide.height,
+    );
+
+    guide.set({
+      originX: 'center',
+      originY: 'center',
+      left: centerX,
+      top:  centerY,
+      scaleX: scale,
+      scaleY: scale,
+    });
+    guide.setCoords();
+
+    this._canvas.add(guide);
+    this._canvas.renderAll();
   }
 
   _scheduleSave() {
@@ -228,6 +310,12 @@ class EditorBodyContainer extends LitElement {
     this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName']);
     this._emitHistory();
     this._emitObjects();
+
+    // Boundary guide is excluded from JSON; re-draw it after load
+    const modelId = getItem(LOCAL.CURRENT_MODEL_ID);
+    if (modelId && MODEL_MAP[modelId]) {
+      await this._applyBoundaryGuide(MODEL_MAP[modelId]);
+    }
   }
 
   _switchTool(id) {
@@ -254,6 +342,7 @@ class EditorBodyContainer extends LitElement {
     off(EVENTS.GRID_CHANGED,        this._onGridChanged);
     off(EVENTS.TOOL_OPTIONS_CHANGED, this._onToolOptionsChanged);
     off(EVENTS.VERSION_SELECTED,    this._onVersionSelected);
+    off(EVENTS.MODEL_SELECTED,      this._onModelSelected);
     off(EVENTS.UNDO_REQUESTED,      this._onUndoRequested);
     off(EVENTS.REDO_REQUESTED,      this._onRedoRequested);
     document.removeEventListener('keydown', this._onCopyPaste);
