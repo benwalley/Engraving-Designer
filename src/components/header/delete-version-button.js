@@ -3,6 +3,7 @@ import { deleteLocalDbVersion, getLocalDbVersions } from '../../helpers/local-db
 import { emit, EVENTS } from '../../helpers/events.js';
 import { getItem, LOCAL } from '../../helpers/local-storage.js';
 import { buttonStyles } from '../component-styles/button-styles.js';
+import '../icons/icon-delete.js';
 
 class DeleteVersionButton extends LitElement {
   static styles = [
@@ -11,12 +12,18 @@ class DeleteVersionButton extends LitElement {
       button.danger {
         color: var(--color-danger);
         border-color: var(--color-danger);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.25rem;
+        line-height: 0;
       }
 
       button.danger:hover:not(:disabled) {
         background: var(--color-danger);
         color: var(--color-danger-text);
       }
+
 
       dialog {
         border: 1px solid var(--color-border);
@@ -85,8 +92,11 @@ class DeleteVersionButton extends LitElement {
     return html`
       <button
         class="danger"
+        title="Delete design"
         @click=${this._handleClick}
-      >Delete</button>
+      >
+        <icon-delete></icon-delete>
+      </button>
 
       <dialog>
         <p>Delete <strong>${this._versionName}</strong>? This cannot be undone.</p>

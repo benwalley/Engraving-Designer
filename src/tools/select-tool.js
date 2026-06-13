@@ -53,6 +53,7 @@ export class SelectTool {
           fontWeight: obj.fontWeight ?? 'normal',
           fontStyle:  obj.fontStyle  ?? 'normal',
           underline:  obj.underline  ?? false,
+          textAlign:  obj.textAlign  ?? 'left',
         });
       } else if (obj.type === 'image') {
         const f = readImageFilters(obj);
@@ -68,10 +69,11 @@ export class SelectTool {
         });
       } else if (obj._isDecoration) {
         emit(EVENTS.SELECTION_CHANGED, {
-          id:    obj._layerId,
-          type:  'decoration',
-          flipX: obj.flipX ?? false,
-          flipY: obj.flipY ?? false,
+          id:      obj._layerId,
+          type:    'decoration',
+          opacity: obj.opacity ?? 1,
+          flipX:   obj.flipX   ?? false,
+          flipY:   obj.flipY   ?? false,
         });
       } else {
         emit(EVENTS.SELECTION_CHANGED, {
@@ -97,7 +99,12 @@ export class SelectTool {
       }
       if (data.flipX       !== undefined) obj.set('flipX',       data.flipX);
       if (data.flipY       !== undefined) obj.set('flipY',       data.flipY);
-      if (data.rotate90)                 { obj.set('angle', ((obj.angle ?? 0) + 90) % 360); obj.setCoords(); }
+      if (data.rotate90) {
+        const center = obj.getCenterPoint();
+        obj.set({ originX: 'center', originY: 'center', left: center.x, top: center.y, angle: ((obj.angle ?? 0) + 90) % 360 });
+        obj.setCoords();
+      }
+      if (data.opacity     !== undefined) obj.set('opacity',     data.opacity);
       if (data.fill        !== undefined) obj.set('fill',        data.fill);
       if (data.stroke      !== undefined) obj.set('stroke',      data.stroke);
       if (data.strokeWidth !== undefined) obj.set('strokeWidth', data.strokeWidth);
@@ -107,6 +114,7 @@ export class SelectTool {
       if (data.fontWeight  !== undefined) obj.set('fontWeight',  data.fontWeight);
       if (data.fontStyle   !== undefined) obj.set('fontStyle',   data.fontStyle);
       if (data.underline   !== undefined) obj.set('underline',   data.underline);
+      if (data.textAlign   !== undefined) obj.set('textAlign',   data.textAlign);
       canvas.renderAll();
     };
 

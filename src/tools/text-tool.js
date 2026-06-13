@@ -8,6 +8,7 @@ const defaults = {
   fontWeight: 'normal',
   fontStyle:  'normal',
   underline:  false,
+  textAlign:  'left',
 };
 
 export class TextTool {
@@ -48,7 +49,7 @@ export class TextTool {
   }
 
   _down(opt) {
-    if (opt.e.button !== 0) return;
+    if (opt.e.button != null && opt.e.button !== 0) return;
     const { x, y } = opt.scenePoint;
 
     const text = new IText('Text', {
@@ -62,6 +63,7 @@ export class TextTool {
       fontWeight: defaults.fontWeight,
       fontStyle:  defaults.fontStyle,
       underline:  defaults.underline,
+      textAlign:  defaults.textAlign,
       selectable: true,
       evented:    true,
     });

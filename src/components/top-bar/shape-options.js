@@ -120,6 +120,8 @@ class ShapeOptions extends LitElement {
     _fontWeight:        { state: true },
     _fontStyle:         { state: true },
     _underline:         { state: true },
+    _textAlign:         { state: true },
+    _opacity:           { state: true },
     _brightness:        { state: true },
     _contrast:          { state: true },
     _gamma:             { state: true },
@@ -129,8 +131,10 @@ class ShapeOptions extends LitElement {
   static styles = css`
     :host {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       height: 100%;
+      gap: calc(var(--spacing-normal) / 2) 0;
     }
 
     .sep {
@@ -683,6 +687,7 @@ class ShapeOptions extends LitElement {
       this._fontWeight  = this.selectionData.fontWeight ?? 'normal';
       this._fontStyle   = this.selectionData.fontStyle  ?? 'normal';
       this._underline   = this.selectionData.underline  ?? false;
+      this._textAlign   = this.selectionData.textAlign  ?? 'left';
     } else if (this._type === 'shape-tool') {
       this._shapeType   = this.selectionData.shapeType  ?? 'circle';
       const fill   = parseGray(this.selectionData.fill   ?? '#ffffff');
@@ -691,8 +696,9 @@ class ShapeOptions extends LitElement {
       this._strokeDark  = stroke.dark;
       this._strokeWidth = this.selectionData.strokeWidth ?? 2;
     } else if (this._type === 'decoration') {
-      this._flipX = this.selectionData.flipX ?? false;
-      this._flipY = this.selectionData.flipY ?? false;
+      this._opacity = Math.round((this.selectionData.opacity ?? 1) * 100);
+      this._flipX   = this.selectionData.flipX ?? false;
+      this._flipY   = this.selectionData.flipY ?? false;
     } else if (this._type === 'decoration-tool') {
       this._decorationType = this.selectionData.decorationType ?? 'corner-no-one';
       const fill   = parseGray(this.selectionData.fill   ?? '#000000');
@@ -799,6 +805,40 @@ class ShapeOptions extends LitElement {
               this._underline = !this._underline;
               this._change('underline', this._underline);
             }}><u>U</u></button>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <div class="toggle-group">
+          <button class="toggle-btn ${this._textAlign === 'left' ? 'active' : ''}"
+            title="Left align"
+            @click=${() => { this._textAlign = 'left'; this._change('textAlign', 'left'); }}>
+            <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" aria-hidden="true">
+              <rect x="0" y="0" width="14" height="2" rx="1"/>
+              <rect x="0" y="5" width="9" height="2" rx="1"/>
+              <rect x="0" y="10" width="11" height="2" rx="1"/>
+            </svg>
+          </button>
+          <button class="toggle-btn ${this._textAlign === 'center' ? 'active' : ''}"
+            title="Center align"
+            @click=${() => { this._textAlign = 'center'; this._change('textAlign', 'center'); }}>
+            <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" aria-hidden="true">
+              <rect x="0" y="0" width="14" height="2" rx="1"/>
+              <rect x="2.5" y="5" width="9" height="2" rx="1"/>
+              <rect x="1" y="10" width="12" height="2" rx="1"/>
+            </svg>
+          </button>
+          <button class="toggle-btn ${this._textAlign === 'right' ? 'active' : ''}"
+            title="Right align"
+            @click=${() => { this._textAlign = 'right'; this._change('textAlign', 'right'); }}>
+            <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" aria-hidden="true">
+              <rect x="0" y="0" width="14" height="2" rx="1"/>
+              <rect x="5" y="5" width="9" height="2" rx="1"/>
+              <rect x="2" y="10" width="12" height="2" rx="1"/>
+            </svg>
+          </button>
         </div>
       </div>
     `;
@@ -964,6 +1004,21 @@ class ShapeOptions extends LitElement {
 
   _renderSelectedDecorationOptions() {
     return html`
+      <div class="group">
+        <span class="group-label">Opacity</span>
+        <div class="slider-wrap">
+          <input type="range" min="0" max="100" step="1"
+            .value=${this._opacity}
+            style="--pct: ${this._opacity}%"
+            @input=${e => {
+              this._opacity = +e.target.value;
+              this._change('opacity', this._opacity / 100);
+            }} />
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
       <div class="group">
         <span class="group-label">Mirror</span>
         <div class="toggle-group">

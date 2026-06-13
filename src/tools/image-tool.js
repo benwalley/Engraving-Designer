@@ -43,7 +43,7 @@ export class ImageTool {
   }
 
   _down(opt) {
-    if (opt.e.button !== 0) return;
+    if (opt.e.button != null && opt.e.button !== 0) return;
     const { x, y } = opt.scenePoint;
     this._pendingPoint = { x, y };
 

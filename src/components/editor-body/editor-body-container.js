@@ -12,6 +12,12 @@ import { MODEL_MAP } from '../../models/model-registry.js';
 
 const RULER_SIZE = 16;
 
+// Fixed design canvas (scene units, anchored at scene origin 0,0). The boundary
+// shape is centered within this fixed space so its position is independent of
+// window size — preserved across resize and reload.
+const CANVAS_WIDTH  = 800;
+const CANVAS_HEIGHT = 600;
+
 class EditorBodyContainer extends LitElement {
   static styles = css`
     :host {
@@ -175,13 +181,13 @@ class EditorBodyContainer extends LitElement {
 
     this._onModelSelected = ({ modelId }) => {
       const model = MODEL_MAP[modelId];
-      if (model) this._applyBoundaryGuide(model).catch(console.error);
+      if (model) this._applyBoundaryGuide(model, { fitView: true }).catch(console.error);
     };
     on(EVENTS.MODEL_SELECTED, this._onModelSelected);
 
     const savedModelId = getItem(LOCAL.CURRENT_MODEL_ID);
     if (savedModelId && MODEL_MAP[savedModelId]) {
-      this._applyBoundaryGuide(MODEL_MAP[savedModelId]).catch(console.error);
+      this._applyBoundaryGuide(MODEL_MAP[savedModelId], { fitView: true }).catch(console.error);
     }
 
     this._onUndoRequested = () => this._undo();
@@ -191,7 +197,7 @@ class EditorBodyContainer extends LitElement {
 
     this._onCanvasDataRequested = () => {
       emit(EVENTS.CANVAS_DATA_READY, {
-        canvasData: this._canvas.toJSON(['_layerId', '_layerName']),
+        canvasData: this._canvas.toJSON(['_layerId', '_layerName', '_isDecoration']),
       });
     };
     on(EVENTS.CANVAS_DATA_REQUESTED, this._onCanvasDataRequested);
@@ -205,6 +211,8 @@ class EditorBodyContainer extends LitElement {
     this._canvasEl = canvasEl;
     this._onDocMouseMove = (e) => this._guideDocMouseMove(e);
     this._onDocMouseUp   = (e) => this._guideDocMouseUp(e);
+    this._onDocTouchMove = (e) => this._guideTouchDocMove(e);
+    this._onDocTouchEnd  = (e) => this._guideTouchDocEnd(e);
 
     this.shadowRoot.querySelector('.ruler-h').addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
@@ -219,6 +227,21 @@ class EditorBodyContainer extends LitElement {
       this._canvas.requestRenderAll();
     });
 
+    this.shadowRoot.querySelector('.ruler-h').addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const vt = this._canvas.viewportTransform;
+      const rect = this._canvasEl.getBoundingClientRect();
+      const sceneVal = (touch.clientY - rect.top - vt[5]) / vt[0];
+      guidesState.horizontalGuides.push(sceneVal);
+      this._draggingGuide = { type: 'h', index: guidesState.horizontalGuides.length - 1 };
+      this._dragAnchor = { clientX: touch.clientX, clientY: touch.clientY, sceneVal };
+      document.addEventListener('touchmove', this._onDocTouchMove, { passive: false });
+      document.addEventListener('touchend',  this._onDocTouchEnd);
+      this._canvas.requestRenderAll();
+    }, { passive: false });
+
     this.shadowRoot.querySelector('.ruler-v').addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
       const vt = this._canvas.viewportTransform;
@@ -231,6 +254,21 @@ class EditorBodyContainer extends LitElement {
       document.addEventListener('mouseup',   this._onDocMouseUp);
       this._canvas.requestRenderAll();
     });
+
+    this.shadowRoot.querySelector('.ruler-v').addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const vt = this._canvas.viewportTransform;
+      const rect = this._canvasEl.getBoundingClientRect();
+      const sceneVal = (touch.clientX - rect.left - vt[4]) / vt[0];
+      guidesState.verticalGuides.push(sceneVal);
+      this._draggingGuide = { type: 'v', index: guidesState.verticalGuides.length - 1 };
+      this._dragAnchor = { clientX: touch.clientX, clientY: touch.clientY, sceneVal };
+      document.addEventListener('touchmove', this._onDocTouchMove, { passive: false });
+      document.addEventListener('touchend',  this._onDocTouchEnd);
+      this._canvas.requestRenderAll();
+    }, { passive: false });
 
     this._onUpperMouseMove = (e) => this._guideUpperMouseMove(e);
     this._onUpperMouseDown = (e) => this._guideUpperMouseDown(e);
@@ -301,6 +339,43 @@ class EditorBodyContainer extends LitElement {
     this._canvas.requestRenderAll();
   }
 
+  // ── Guide touch drag (document-level) ────────────────────────────────────
+
+  _guideTouchDocMove(e) {
+    if (!this._draggingGuide || e.touches.length === 0) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dg     = this._draggingGuide;
+    const anchor = this._dragAnchor;
+    const vt     = this._canvas.viewportTransform;
+    if (dg.type === 'v') {
+      guidesState.verticalGuides[dg.index] = anchor.sceneVal + (touch.clientX - anchor.clientX) / vt[0];
+    } else {
+      guidesState.horizontalGuides[dg.index] = anchor.sceneVal + (touch.clientY - anchor.clientY) / vt[0];
+    }
+    this._canvas.requestRenderAll();
+  }
+
+  _guideTouchDocEnd(e) {
+    document.removeEventListener('touchmove', this._onDocTouchMove);
+    document.removeEventListener('touchend',  this._onDocTouchEnd);
+    if (!this._draggingGuide) return;
+    const dg = this._draggingGuide;
+    this._draggingGuide = null;
+    this._dragAnchor = null;
+    const touch = e.changedTouches[0];
+    const rect = this._canvasEl.getBoundingClientRect();
+    const overCanvas = touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                       touch.clientY >= rect.top  && touch.clientY <= rect.bottom;
+    if (!overCanvas) {
+      if (dg.type === 'v') guidesState.verticalGuides.splice(dg.index, 1);
+      else guidesState.horizontalGuides.splice(dg.index, 1);
+    }
+    saveGuides();
+    this._scheduleSave();
+    this._canvas.requestRenderAll();
+  }
+
   // ── Drawing ───────────────────────────────────────────────────────────────
 
   _drawGuides() {
@@ -317,7 +392,7 @@ class EditorBodyContainer extends LitElement {
     emit(EVENTS.CANVAS_OBJECTS_UPDATED, items);
   }
 
-  async _applyBoundaryGuide(model) {
+  async _applyBoundaryGuide(model, { fitView = false } = {}) {
     const existing = this._canvas.getObjects().find(o => o._layerId?.startsWith('__boundary__'));
     if (existing) this._canvas.remove(existing);
 
@@ -353,32 +428,42 @@ class EditorBodyContainer extends LitElement {
       _layerId: '__boundary__' + model.id,
     });
 
-    const vt = this._canvas.viewportTransform;
-    const zoom = vt[0];
-    const panX = vt[4];
-    const panY = vt[5];
-    const visibleWidth  = this._canvas.width  / zoom;
-    const visibleHeight = this._canvas.height / zoom;
-    const centerX = (this._canvas.width  / 2 - panX) / zoom;
-    const centerY = (this._canvas.height / 2 - panY) / zoom;
-
+    // Center the shape in the fixed design canvas at a fixed scale (~90% of the
+    // canvas). Fully deterministic — independent of window size and current
+    // pan/zoom — so the boundary keeps the same scene rect across resize/reload.
     const scale = Math.min(
-      (visibleWidth  * 0.9) / guide.width,
-      (visibleHeight * 0.9) / guide.height,
+      (CANVAS_WIDTH  * 0.9) / guide.width,
+      (CANVAS_HEIGHT * 0.9) / guide.height,
     );
 
     guide.set({
       originX: 'center',
       originY: 'center',
-      left: centerX,
-      top:  centerY,
+      left: CANVAS_WIDTH  / 2,
+      top:  CANVAS_HEIGHT / 2,
       scaleX: scale,
       scaleY: scale,
     });
     guide.setCoords();
 
     this._canvas.add(guide);
+    if (fitView) this._fitViewToCanvas();
     this._canvas.renderAll();
+  }
+
+  // Scale + pan the viewport so the fixed design canvas fills ~90% of the
+  // current canvas pixels, centered. The ONLY place window dimensions feed into
+  // framing — the design itself stays at fixed scene coordinates.
+  _fitViewToCanvas() {
+    const cw = this._canvas.width;
+    const ch = this._canvas.height;
+    const fit = Math.min((cw * 0.9) / CANVAS_WIDTH, (ch * 0.9) / CANVAS_HEIGHT);
+    const tx = cw / 2 - (CANVAS_WIDTH  / 2) * fit;
+    const ty = ch / 2 - (CANVAS_HEIGHT / 2) * fit;
+    this._canvas._baseZoom = fit;
+    this._canvas.setViewportTransform([fit, 0, 0, fit, tx, ty]);
+    this._canvas.requestRenderAll();
+    emit(EVENTS.ZOOM_CHANGED, { zoom: this._canvas.getZoom() });
   }
 
   _scheduleSave() {
@@ -391,7 +476,7 @@ class EditorBodyContainer extends LitElement {
       try { version = await getLocalDbVersionById(id); } catch { return; }
       if (!version) return;
       emit(EVENTS.VERSION_SAVING);
-      version.data = this._canvas.toJSON(['_layerId', '_layerName']);
+      version.data = this._canvas.toJSON(['_layerId', '_layerName', '_isDecoration']);
       version.guides = { v: guidesState.verticalGuides.slice(), h: guidesState.horizontalGuides.slice() };
       version.updatedAt = new Date();
       try { await saveLocalDbVersion(version); } catch { return; }
@@ -416,13 +501,13 @@ class EditorBodyContainer extends LitElement {
     }
     this._loading = false;
     this._history.clear();
-    this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName']);
+    this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName', '_isDecoration']);
     this._emitHistory();
     this._emitObjects();
 
     const modelId = getItem(LOCAL.CURRENT_MODEL_ID);
     if (modelId && MODEL_MAP[modelId]) {
-      await this._applyBoundaryGuide(MODEL_MAP[modelId]);
+      await this._applyBoundaryGuide(MODEL_MAP[modelId], { fitView: true });
     }
   }
 
@@ -436,7 +521,9 @@ class EditorBodyContainer extends LitElement {
 
   _resize() {
     const { width, height } = this.getBoundingClientRect();
+    if (!this._canvas) return;
     this._canvas.setDimensions({ width: width - RULER_SIZE, height: height - RULER_SIZE });
+    this._fitViewToCanvas();
   }
 
   disconnectedCallback() {
@@ -456,6 +543,8 @@ class EditorBodyContainer extends LitElement {
     document.removeEventListener('keydown', this._onCopyPaste);
     document.removeEventListener('mousemove', this._onDocMouseMove);
     document.removeEventListener('mouseup',   this._onDocMouseUp);
+    document.removeEventListener('touchmove', this._onDocTouchMove);
+    document.removeEventListener('touchend',  this._onDocTouchEnd);
     if (this._canvas?.upperCanvasEl) {
       this._canvas.upperCanvasEl.removeEventListener('mousemove', this._onUpperMouseMove);
       this._canvas.upperCanvasEl.removeEventListener('mousedown', this._onUpperMouseDown, { capture: true });
@@ -525,7 +614,7 @@ class EditorBodyContainer extends LitElement {
   _pushHistoryEntry() {
     if (this._isRestoringHistory || this._loading) return;
     this._history.push(this._currentSnapshot);
-    this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName']);
+    this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName', '_isDecoration']);
     this._emitHistory();
   }
 
@@ -535,7 +624,7 @@ class EditorBodyContainer extends LitElement {
     clearTimeout(this._historyDebounceTimer);
     this._historyDebounceTimer = setTimeout(() => {
       this._history.push(this._preChangeSnapshot);
-      this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName']);
+      this._currentSnapshot = this._canvas.toJSON(['_layerId', '_layerName', '_isDecoration']);
       this._preChangeSnapshot = null;
       this._emitHistory();
     }, 800);
@@ -547,6 +636,7 @@ class EditorBodyContainer extends LitElement {
     const prev = this._history.undo(this._currentSnapshot);
     this._currentSnapshot = prev;
     await this._canvas.loadFromJSON(prev);
+    await this._reapplyBoundaryGuide();
     this._canvas.renderAll();
     this._emitObjects();
     this._isRestoringHistory = false;
@@ -560,11 +650,19 @@ class EditorBodyContainer extends LitElement {
     const next = this._history.redo(this._currentSnapshot);
     this._currentSnapshot = next;
     await this._canvas.loadFromJSON(next);
+    await this._reapplyBoundaryGuide();
     this._canvas.renderAll();
     this._emitObjects();
     this._isRestoringHistory = false;
     this._emitHistory();
     this._scheduleSave();
+  }
+
+  async _reapplyBoundaryGuide() {
+    const modelId = getItem(LOCAL.CURRENT_MODEL_ID);
+    if (modelId && MODEL_MAP[modelId]) {
+      await this._applyBoundaryGuide(MODEL_MAP[modelId]);
+    }
   }
 
   render() {

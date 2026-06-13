@@ -163,7 +163,7 @@ class SaveSnapshotButton extends LitElement {
         @click=${this._handleClick}
         ?disabled=${this._status === 'saving'}
       >
-        ${this._status === 'saving' ? 'Saving…' : 'Save Snapshot'}
+        ${this._status === 'saving' ? 'Saving…' : 'Snapshot'}
       </button>
 
       ${this._status === 'success' ? html`

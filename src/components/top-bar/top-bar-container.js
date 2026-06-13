@@ -13,9 +13,9 @@ class TopBarContainer extends LitElement {
   static styles = css`
     :host {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      padding: 0 var(--spacing-normal);
-      height: 44px;
+      padding: calc(var(--spacing-normal) / 2) 0;
       background: var(--color-surface);
       border-bottom: 1px solid var(--color-border);
     }

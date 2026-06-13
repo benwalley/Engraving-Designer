@@ -42,25 +42,25 @@ export class GrabTool {
   }
 
   _down(opt) {
-    if (opt.e.button !== 0) return;
-    opt.e.preventDefault();
+    if (opt.e.button != null && opt.e.button !== 0) return;
+    opt.e.preventDefault?.();
     this._panning = true;
-    this._lastX = opt.e.clientX;
-    this._lastY = opt.e.clientY;
+    this._lastX = opt.pointer.x;
+    this._lastY = opt.pointer.y;
     this._canvas.defaultCursor = 'grabbing';
   }
 
   _move(opt) {
     if (!this._panning) return;
-    const dx = opt.e.clientX - this._lastX;
-    const dy = opt.e.clientY - this._lastY;
-    this._lastX = opt.e.clientX;
-    this._lastY = opt.e.clientY;
+    const dx = opt.pointer.x - this._lastX;
+    const dy = opt.pointer.y - this._lastY;
+    this._lastX = opt.pointer.x;
+    this._lastY = opt.pointer.y;
     this._canvas.relativePan(new Point(dx, dy));
   }
 
   _up(opt) {
-    if (opt.e.button !== 0) return;
+    if (opt.e.button != null && opt.e.button !== 0) return;
     this._panning = false;
     this._canvas.defaultCursor = 'grab';
   }
