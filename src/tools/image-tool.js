@@ -1,6 +1,5 @@
 import { FabricImage, filters } from 'fabric';
 import { emit, EVENTS } from '../helpers/events.js';
-import { snapCoord } from '../helpers/grid.js';
 
 export class ImageTool {
   activate(canvas) {
@@ -46,7 +45,7 @@ export class ImageTool {
   _down(opt) {
     if (opt.e.button !== 0) return;
     const { x, y } = opt.scenePoint;
-    this._pendingPoint = { x: snapCoord(x), y: snapCoord(y) };
+    this._pendingPoint = { x, y };
 
     this._fileInput.value = '';
     this._fileInput.onchange = () => this._load();

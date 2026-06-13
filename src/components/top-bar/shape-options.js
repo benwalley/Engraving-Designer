@@ -3,6 +3,8 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { emit, EVENTS } from '../../helpers/events.js';
 import { DECORATION_LIST } from '../../tools/decoration-tool.js';
 import '../icons/icon-invert.js';
+import '../icons/icon-rotate.js';
+import '../icons/icon-mirror.js';
 
 // Strip XML declaration and DOCTYPE before embedding SVG inline in HTML
 function cleanSvg(str) {
@@ -970,22 +972,14 @@ class ShapeOptions extends LitElement {
               this._flipX = !this._flipX;
               this._change('flipX', this._flipX);
             }}>
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M8 2 L8 14"/>
-              <path d="M2 5 L6 8 L2 11"/>
-              <path d="M14 5 L10 8 L14 11"/>
-            </svg>
+            <icon-mirror></icon-mirror>
           </button>
           <button class="toggle-btn ${this._flipY ? 'active' : ''}" title="Flip Vertical"
             @click=${() => {
               this._flipY = !this._flipY;
               this._change('flipY', this._flipY);
             }}>
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M2 8 L14 8"/>
-              <path d="M5 2 L8 6 L11 2"/>
-              <path d="M5 14 L8 10 L11 14"/>
-            </svg>
+            <icon-mirror rotate></icon-mirror>
           </button>
         </div>
       </div>
@@ -996,10 +990,7 @@ class ShapeOptions extends LitElement {
         <span class="group-label">Rotate</span>
         <button class="toggle-btn" title="Rotate 90°"
           @click=${() => this._change('rotate90', true)}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 3 A6 6 0 1 0 14 8"/>
-            <path d="M14 3 L14 7 L10 7"/>
-          </svg>
+          <icon-rotate></icon-rotate>
         </button>
       </div>
     `;

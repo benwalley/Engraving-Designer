@@ -1,6 +1,5 @@
 import { Line } from 'fabric';
 import { on, off, emit, EVENTS } from '../helpers/events.js';
-import { snapCoord } from '../helpers/grid.js';
 
 const defaults = { stroke: '#000000', strokeWidth: 2 };
 
@@ -60,10 +59,10 @@ export class LineTool {
     if (opt.e.button !== 0) return;
     const { x, y } = opt.scenePoint;
     this._drawing = true;
-    this._startX = snapCoord(x);
-    this._startY = snapCoord(y);
+    this._startX = x;
+    this._startY = y;
 
-    this._line = new Line([this._startX, this._startY, this._startX, this._startY], {
+    this._line = new Line([x, y, x, y], {
       stroke: defaults.stroke,
       strokeWidth: defaults.strokeWidth,
       selectable: false,
@@ -75,8 +74,8 @@ export class LineTool {
   _move(opt) {
     if (!this._drawing || !this._line) return;
     const { x, y } = opt.scenePoint;
-    let w = snapCoord(x) - this._startX;
-    let h = snapCoord(y) - this._startY;
+    let w = x - this._startX;
+    let h = y - this._startY;
 
     if (opt.e.shiftKey) {
       const angle = Math.round(Math.atan2(h, w) / (Math.PI / 4)) * (Math.PI / 4);

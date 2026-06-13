@@ -3,8 +3,7 @@ export const LOCAL = {
   CURRENT_VERSION_ID: "current-version-id",
   CURRENT_MODEL_ID: "current-model-id",
   THEME: "theme",
-  GRID_SHOW: "grid-show",
-  GRID_SNAP: "grid-snap",
+  GUIDES_DATA: "guides-data",
 }
 
 function getStore() {

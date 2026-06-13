@@ -1,6 +1,5 @@
 import { Rect } from 'fabric';
 import { on, off, emit, EVENTS } from '../helpers/events.js';
-import { snapCoord } from '../helpers/grid.js';
 
 const defaults = { fill: '#ffffff', stroke: '#000000', strokeWidth: 2, rx: 0 };
 
@@ -59,8 +58,8 @@ export class RectangleTool {
     if (opt.e.button !== 0) return;
     const { x, y } = opt.scenePoint;
     this._drawing = true;
-    this._startX = snapCoord(x);
-    this._startY = snapCoord(y);
+    this._startX = x;
+    this._startY = y;
 
     this._rect = new Rect({
       left: x,
@@ -83,8 +82,8 @@ export class RectangleTool {
   _move(opt) {
     if (!this._drawing || !this._rect) return;
     const { x, y } = opt.scenePoint;
-    let w = snapCoord(x) - this._startX;
-    let h = snapCoord(y) - this._startY;
+    let w = x - this._startX;
+    let h = y - this._startY;
 
     if (opt.e.shiftKey) {
       const size = Math.max(Math.abs(w), Math.abs(h));

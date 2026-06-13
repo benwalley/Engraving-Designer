@@ -1,7 +1,6 @@
 import { loadSVGFromString, util } from 'fabric';
 const { groupSVGElements } = util;
 import { on, off, emit, EVENTS } from '../helpers/events.js';
-import { snapCoord } from '../helpers/grid.js';
 
 import cornerNoOneSvg   from '../decorations/corner-no-one.svg?raw';
 import cornerNoTwoSvg   from '../decorations/corner-no-two.svg?raw';
@@ -88,8 +87,8 @@ export class DecorationTool {
     if (opt.e.button !== 0) return;
     const { x, y } = opt.scenePoint;
     this._drawing = true;
-    this._startX = snapCoord(x);
-    this._startY = snapCoord(y);
+    this._startX = x;
+    this._startY = y;
     this._shape = null;
 
     const entry = DECORATION_LIST.find(d => d.id === _selectedDecoration) ?? DECORATION_LIST[0];
@@ -119,11 +118,10 @@ export class DecorationTool {
   _move(opt) {
     if (!this._drawing || !this._shape) return;
     const { x, y } = opt.scenePoint;
-    let w = snapCoord(x) - this._startX;
-    let h = snapCoord(y) - this._startY;
+    let w = x - this._startX;
+    let h = y - this._startY;
 
     if (!opt.e.shiftKey) {
-      // Default: maintain natural aspect ratio
       const scaleW = Math.abs(w) / this._naturalW;
       const scaleH = Math.abs(h) / this._naturalH;
       const scale  = Math.max(scaleW, scaleH);

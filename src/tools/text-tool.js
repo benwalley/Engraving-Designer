@@ -1,6 +1,5 @@
 import { IText } from 'fabric';
 import { on, off, emit, EVENTS } from '../helpers/events.js';
-import { snapCoord } from '../helpers/grid.js';
 
 const defaults = {
   fontFamily: 'Arial',
@@ -53,8 +52,8 @@ export class TextTool {
     const { x, y } = opt.scenePoint;
 
     const text = new IText('Text', {
-      left:       snapCoord(x),
-      top:        snapCoord(y),
+      left:       x,
+      top:        y,
       originX:    'left',
       originY:    'top',
       fontFamily: defaults.fontFamily,
