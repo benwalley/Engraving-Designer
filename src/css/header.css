@@ -11,7 +11,7 @@ header {
     border-bottom: 1px solid var(--color-border);
     color: var(--color-text);
     padding: calc(var(--spacing-normal) / 2);
-    grid-column: 1 / span 3;
+    grid-column: 1 / -1;
 
     app-logo              { grid-area: logo; }
     saving-indicator      { grid-area: saving; }

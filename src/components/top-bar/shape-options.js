@@ -103,6 +103,8 @@ const SHAPE_LIST = [
 class ShapeOptions extends LitElement {
   static properties = {
     selectionData: {},
+    showOptions: {},
+    onToggleSidebar: {},
     _fillDark:          { state: true },
     _strokeDark:        { state: true },
     _strokeWidth:       { state: true },
@@ -560,6 +562,34 @@ class ShapeOptions extends LitElement {
       background: var(--color-accent-subtle);
       color: var(--color-accent);
       border-color: var(--color-accent);
+    }
+
+    .sidebar-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      margin-left: 8px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-size: 20px;
+      border-radius: var(--radius-md);
+      flex-shrink: 0;
+    }
+
+    .sidebar-toggle:hover {
+      background: var(--color-accent-subtle);
+      color: var(--color-accent);
+    }
+
+    @media (max-width: 800px) {
+      .sidebar-toggle {
+        display: flex;
+      }
     }
   `;
 
@@ -1052,13 +1082,20 @@ class ShapeOptions extends LitElement {
   }
 
   render() {
-    if (this._type === 'image') return this._renderImageOptions();
-    if (this._type === 'shape-tool') return this._renderShapeToolOptions();
-    if (this._type === 'decoration-tool') return this._renderDecorationToolOptions();
-    if (this._type === 'decoration') return this._renderSelectedDecorationOptions();
-    return this._type === 'i-text'
-      ? this._renderTextOptions()
-      : this._renderShapeOptions();
+    const hamburger = html`
+      <button class="sidebar-toggle" @click=${this.onToggleSidebar} title="Toggle sidebar">☰</button>
+    `;
+
+    if (!this.showOptions) return hamburger;
+
+    let content;
+    if (this._type === 'image')            content = this._renderImageOptions();
+    else if (this._type === 'shape-tool')  content = this._renderShapeToolOptions();
+    else if (this._type === 'decoration-tool') content = this._renderDecorationToolOptions();
+    else if (this._type === 'decoration')  content = this._renderSelectedDecorationOptions();
+    else content = this._type === 'i-text' ? this._renderTextOptions() : this._renderShapeOptions();
+
+    return html`${hamburger}${content}`;
   }
 
   _renderImageOptions() {

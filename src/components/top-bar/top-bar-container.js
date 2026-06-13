@@ -59,9 +59,17 @@ class TopBarContainer extends LitElement {
     return false;
   }
 
+  _toggleSidebar = () => {
+    document.body.classList.toggle('sidebar-open');
+  };
+
   render() {
     return html`
-      ${this._showOptions ? html`<shape-options .selectionData=${this._selectionData}></shape-options>` : ''}
+      <shape-options
+        .selectionData=${this._selectionData}
+        .showOptions=${this._showOptions}
+        .onToggleSidebar=${this._toggleSidebar}
+      ></shape-options>
     `;
   }
 }
