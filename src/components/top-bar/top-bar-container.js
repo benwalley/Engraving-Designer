@@ -52,11 +52,11 @@ class TopBarContainer extends LitElement {
   }
 
   get _showOptions() {
-    if (this._activeTool === 'rectangle') return true;
-    if (this._activeTool === 'ellipse')   return true;
-    if (this._activeTool === 'line')      return true;
-    if (this._activeTool === 'text')      return true;
-    if (this._activeTool === 'select')    return this._hasSelection;
+    if (this._activeTool === 'shape')      return true;
+    if (this._activeTool === 'decoration') return true;
+    if (this._activeTool === 'line')       return true;
+    if (this._activeTool === 'text')       return true;
+    if (this._activeTool === 'select')     return this._hasSelection;
     return false;
   }
 

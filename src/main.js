@@ -1,9 +1,11 @@
+import './helpers/url-router.js';
 import './components/header/app-logo.js';
 import './components/header/version-picker.js';
 import './components/header/create-copy-button.js'
 import './components/header/delete-version-button.js'
 import './components/header/saving-indicator.js'
 import './components/header/dark-light-toggle.js'
+import './components/header/save-snapshot-button.js'
 import './components/header/zoom-control.js'
 import './components/top-bar/top-bar-container.js'
 import './components/top-bar/shape-options.js'

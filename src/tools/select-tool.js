@@ -29,7 +29,11 @@ export class SelectTool {
     canvas.selection = true;
     canvas.defaultCursor = 'default';
     canvas.getObjects().forEach(obj => {
-      if (obj._layerId?.startsWith('__boundary__')) return;
+      if (obj._layerId?.startsWith('__boundary__')) {
+        obj.selectable = false;
+        obj.evented = false;
+        return;
+      }
       obj.selectable = true;
       obj.evented = true;
       obj.setCoords();
@@ -62,6 +66,13 @@ export class SelectTool {
           stroke:      obj.stroke      ?? null,
           strokeWidth: obj.strokeWidth ?? 0,
         });
+      } else if (obj._isDecoration) {
+        emit(EVENTS.SELECTION_CHANGED, {
+          id:    obj._layerId,
+          type:  'decoration',
+          flipX: obj.flipX ?? false,
+          flipY: obj.flipY ?? false,
+        });
       } else {
         emit(EVENTS.SELECTION_CHANGED, {
           id:          obj._layerId,
@@ -84,6 +95,9 @@ export class SelectTool {
         canvas.renderAll();
         return;
       }
+      if (data.flipX       !== undefined) obj.set('flipX',       data.flipX);
+      if (data.flipY       !== undefined) obj.set('flipY',       data.flipY);
+      if (data.rotate90)                 { obj.set('angle', ((obj.angle ?? 0) + 90) % 360); obj.setCoords(); }
       if (data.fill        !== undefined) obj.set('fill',        data.fill);
       if (data.stroke      !== undefined) obj.set('stroke',      data.stroke);
       if (data.strokeWidth !== undefined) obj.set('strokeWidth', data.strokeWidth);

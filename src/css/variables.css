@@ -44,7 +44,7 @@
 
         /* Canvas */
         --color-canvas-bg: #ffffff;
-        --color-grid: #dddddd;
+        --color-grid: #f0f0f0;
 
         /* Overlays */
         --color-overlay: rgba(0, 0, 0, 0.4);
@@ -104,7 +104,7 @@
         --color-danger: #dc2626;
         --color-danger-text: #ffffff;
         --color-canvas-bg: #ffffff;
-        --color-grid: #dddddd;
+        --color-grid: #f0f0f0;
         --color-overlay: rgba(0, 0, 0, 0.4);
         --shadow-dropdown: 0 4px 12px rgb(0 0 0 / 0.1);
     }

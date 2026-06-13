@@ -135,6 +135,7 @@ class EditorBodyContainer extends LitElement {
     on(EVENTS.LAYER_RENAME, this._onLayerRename);
 
     this._onLayerDeleted = ({ id }) => {
+      if (id?.startsWith('__boundary__')) return;
       const obj = this._canvas.getObjects().find(o => o._layerId === id);
       if (obj) this._canvas.remove(obj);
     };
@@ -165,6 +166,13 @@ class EditorBodyContainer extends LitElement {
     this._onRedoRequested = () => this._redo();
     on(EVENTS.UNDO_REQUESTED, this._onUndoRequested);
     on(EVENTS.REDO_REQUESTED, this._onRedoRequested);
+
+    this._onCanvasDataRequested = () => {
+      emit(EVENTS.CANVAS_DATA_READY, {
+        canvasData: this._canvas.toJSON(['_layerId', '_layerName']),
+      });
+    };
+    on(EVENTS.CANVAS_DATA_REQUESTED, this._onCanvasDataRequested);
 
     this._clipboard = null;
     this._pasteOffset = 0;
@@ -238,8 +246,7 @@ class EditorBodyContainer extends LitElement {
       selectable: false,
       evented: false,
       excludeFromExport: true,
-      fill: 'rgba(99,102,241,0.07)',
-      fillRule: 'evenodd',
+      fill: 'transparent',
       stroke: '#6366f1',
       strokeDashArray: [6, 4],
       strokeWidth: 1.5,
@@ -343,8 +350,9 @@ class EditorBodyContainer extends LitElement {
     off(EVENTS.TOOL_OPTIONS_CHANGED, this._onToolOptionsChanged);
     off(EVENTS.VERSION_SELECTED,    this._onVersionSelected);
     off(EVENTS.MODEL_SELECTED,      this._onModelSelected);
-    off(EVENTS.UNDO_REQUESTED,      this._onUndoRequested);
-    off(EVENTS.REDO_REQUESTED,      this._onRedoRequested);
+    off(EVENTS.UNDO_REQUESTED,         this._onUndoRequested);
+    off(EVENTS.REDO_REQUESTED,         this._onRedoRequested);
+    off(EVENTS.CANVAS_DATA_REQUESTED,  this._onCanvasDataRequested);
     document.removeEventListener('keydown', this._onCopyPaste);
     clearTimeout(this._saveTimer);
     clearTimeout(this._historyDebounceTimer);

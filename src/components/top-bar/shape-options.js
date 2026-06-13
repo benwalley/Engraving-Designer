@@ -1,6 +1,16 @@
 import { LitElement, html, css } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { emit, EVENTS } from '../../helpers/events.js';
+import { DECORATION_LIST } from '../../tools/decoration-tool.js';
 import '../icons/icon-invert.js';
+
+// Strip XML declaration and DOCTYPE before embedding SVG inline in HTML
+function cleanSvg(str) {
+  return str
+    .replace(/<\?xml[\s\S]*?\?>/g, '')
+    .replace(/<!DOCTYPE[\s\S]*?>/g, '')
+    .trim();
+}
 
 const FONTS = [
   // System
@@ -61,24 +71,57 @@ function grayToRgb(dark) {
   return `rgb(${n}, ${n}, ${n})`;
 }
 
+const SHAPE_LIST = [
+  { id: 'circle',    label: 'Circle',
+    svg: html`<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>` },
+  { id: 'ellipse',   label: 'Ellipse',
+    svg: html`<svg viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="7" ry="4.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>` },
+  { id: 'rectangle', label: 'Rectangle',
+    svg: html`<svg viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="9" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>` },
+  { id: 'triangle',  label: 'Triangle',
+    svg: html`<svg viewBox="0 0 16 16"><polygon points="8,1.5 15,14.5 1,14.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/></svg>` },
+  { id: 'star',      label: 'Star',
+    svg: html`<svg viewBox="0 0 16 16"><polygon points="8,1 10.2,5.8 15.5,6.3 11.5,10 12.7,15.2 8,12.5 3.3,15.2 4.5,10 0.5,6.3 5.8,5.8" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/></svg>` },
+  { id: 'diamond',   label: 'Diamond',
+    svg: html`<svg viewBox="0 0 16 16"><polygon points="8,1 15,8 8,15 1,8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/></svg>` },
+  { id: 'hexagon',   label: 'Hexagon',
+    svg: html`<svg viewBox="0 0 16 16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/></svg>` },
+  { id: 'arrow',     label: 'Arrow',
+    svg: html`<svg viewBox="0 0 16 16"><polygon points="1,5.5 10,5.5 10,2 15,8 10,14 10,10.5 1,10.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/></svg>` },
+  { id: 'cross',     label: 'Cross',
+    svg: html`<svg viewBox="0 0 16 16"><polygon points="5.5,1 10.5,1 10.5,5.5 15,5.5 15,10.5 10.5,10.5 10.5,15 5.5,15 5.5,10.5 1,10.5 1,5.5 5.5,5.5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/></svg>` },
+  { id: 'heart',     label: 'Heart',
+    svg: html`<svg viewBox="0 0 16 16"><path d="M8,13.5 C2,9.5 1,6 1,5 C1,2.5 3,1 5,1 C6.5,1 8,2.5 8,3 C8,2.5 9.5,1 11,1 C13,1 15,2.5 15,5 C15,6 14,9.5 8,13.5 Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/></svg>` },
+  { id: 'banner',    label: 'Banner',
+    svg: html`<svg viewBox="0 0 16 16"><polygon points="1,8 3.5,1 12.5,1 15,8 12.5,15 3.5,15" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/></svg>` },
+  { id: 'octagon',   label: 'Octagon',
+    svg: html`<svg viewBox="0 0 16 16"><polygon points="5,1 11,1 15,5 15,11 11,15 5,15 1,11 1,5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/></svg>` },
+];
+
 class ShapeOptions extends LitElement {
   static properties = {
     selectionData: {},
-    _fillDark:    { state: true },
-    _strokeDark:  { state: true },
-    _strokeWidth: { state: true },
-    _rx:          { state: true },
-    _type:        { state: true },
-    _fontFamily:  { state: true },
-    _fontDropOpen:{ state: true },
-    _fontSize:    { state: true },
-    _fontWeight:  { state: true },
-    _fontStyle:   { state: true },
-    _underline:   { state: true },
-    _brightness:  { state: true },
-    _contrast:    { state: true },
-    _gamma:       { state: true },
-    _inverted:    { state: true },
+    _fillDark:          { state: true },
+    _strokeDark:        { state: true },
+    _strokeWidth:       { state: true },
+    _rx:                { state: true },
+    _type:              { state: true },
+    _shapeType:         { state: true },
+    _shapeDropOpen:     { state: true },
+    _decorationType:    { state: true },
+    _decorationDropOpen:{ state: true },
+    _flipX:             { state: true },
+    _flipY:             { state: true },
+    _fontFamily:        { state: true },
+    _fontDropOpen:      { state: true },
+    _fontSize:          { state: true },
+    _fontWeight:        { state: true },
+    _fontStyle:         { state: true },
+    _underline:         { state: true },
+    _brightness:        { state: true },
+    _contrast:          { state: true },
+    _gamma:             { state: true },
+    _inverted:          { state: true },
   };
 
   static styles = css`
@@ -332,6 +375,156 @@ class ShapeOptions extends LitElement {
       gap: 3px;
     }
 
+    /* ── Shape dropdown ── */
+    .shape-picker-drop {
+      position: relative;
+    }
+
+    .shape-trigger {
+      height: 26px;
+      min-width: 120px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-size: 13px;
+      padding: 0 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      white-space: nowrap;
+      transition: border-color var(--duration-fast) var(--easing-default);
+    }
+
+    .shape-trigger:hover {
+      border-color: var(--color-border-hover);
+    }
+
+    .shape-trigger.open {
+      border-color: var(--color-accent);
+    }
+
+    .shape-trigger-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .shape-trigger-left svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .shape-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      z-index: 1000;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+      padding: 6px;
+      display: grid;
+      grid-template-columns: repeat(4, 26px);
+      gap: 3px;
+    }
+
+    .decoration-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      z-index: 1000;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+      padding: 4px 0;
+      min-width: 180px;
+    }
+
+    .decoration-item {
+      width: 100%;
+      height: 44px;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--color-text);
+      transition: background var(--duration-fast) var(--easing-default);
+      user-select: none;
+    }
+
+    .decoration-item:hover {
+      background: var(--color-accent-subtle);
+    }
+
+    .decoration-item.active {
+      background: var(--color-accent-subtle);
+      color: var(--color-accent);
+    }
+
+    .decoration-thumb {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .decoration-thumb svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .decoration-trigger-thumb {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .decoration-trigger-thumb svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .decoration-thumb svg,
+      .decoration-trigger-thumb svg {
+        filter: invert(1);
+      }
+    }
+
+    :host-context([data-theme="dark"]) .decoration-thumb svg,
+    :host-context([data-theme="dark"]) .decoration-trigger-thumb svg {
+      filter: invert(1);
+    }
+
+    :host-context([data-theme="light"]) .decoration-thumb svg,
+    :host-context([data-theme="light"]) .decoration-trigger-thumb svg {
+      filter: none;
+    }
+
+    .toggle-btn svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
+
     .toggle-btn {
       width: 26px;
       height: 26px;
@@ -366,26 +559,82 @@ class ShapeOptions extends LitElement {
 
   constructor() {
     super();
-    this._fillDark    = 0;
-    this._strokeDark  = 100;
-    this._strokeWidth = 2;
-    this._rx          = 0;
-    this._type        = '';
-    this._fontFamily  = 'Arial';
-    this._fontDropOpen = false;
-    this._fontSize    = 24;
-    this._fontWeight  = 'normal';
-    this._fontStyle   = 'normal';
-    this._underline   = false;
-    this._brightness  = 0;
-    this._contrast    = 0;
-    this._gamma       = 100;
-    this._inverted    = false;
+    this._fillDark      = 0;
+    this._strokeDark    = 100;
+    this._strokeWidth   = 2;
+    this._rx            = 0;
+    this._type          = '';
+    this._shapeType         = 'circle';
+    this._shapeDropOpen     = false;
+    this._decorationType    = 'corner-no-one';
+    this._decorationDropOpen = false;
+    this._flipX             = false;
+    this._flipY             = false;
+    this._fontFamily        = 'Arial';
+    this._fontDropOpen  = false;
+    this._fontSize      = 24;
+    this._fontWeight    = 'normal';
+    this._fontStyle     = 'normal';
+    this._underline     = false;
+    this._brightness    = 0;
+    this._contrast      = 0;
+    this._gamma         = 100;
+    this._inverted      = false;
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this._closeFontDrop();
+    this._closeShapeDrop();
+    this._closeDecorationDrop();
+  }
+
+  _openShapeDrop() {
+    this._shapeDropOpen = true;
+    this._outsideShapeClick = (e) => {
+      if (!this.renderRoot.contains(e.composedPath()[0])) {
+        this._closeShapeDrop();
+      }
+    };
+    setTimeout(() => document.addEventListener('click', this._outsideShapeClick), 0);
+  }
+
+  _closeShapeDrop() {
+    this._shapeDropOpen = false;
+    if (this._outsideShapeClick) {
+      document.removeEventListener('click', this._outsideShapeClick);
+      this._outsideShapeClick = null;
+    }
+  }
+
+  _selectShape(id) {
+    this._shapeType = id;
+    emit(EVENTS.TOOL_OPTIONS_CHANGED, { shapeType: id });
+    this._closeShapeDrop();
+  }
+
+  _openDecorationDrop() {
+    this._decorationDropOpen = true;
+    this._outsideDecorationClick = (e) => {
+      if (!this.renderRoot.contains(e.composedPath()[0])) {
+        this._closeDecorationDrop();
+      }
+    };
+    setTimeout(() => document.addEventListener('click', this._outsideDecorationClick), 0);
+  }
+
+  _closeDecorationDrop() {
+    this._decorationDropOpen = false;
+    if (this._outsideDecorationClick) {
+      document.removeEventListener('click', this._outsideDecorationClick);
+      this._outsideDecorationClick = null;
+    }
+  }
+
+  _selectDecoration(id) {
+    this._decorationType = id;
+    emit(EVENTS.TOOL_OPTIONS_CHANGED, { decorationType: id });
+    this._closeDecorationDrop();
   }
 
   _openFontDrop() {
@@ -432,6 +681,23 @@ class ShapeOptions extends LitElement {
       this._fontWeight  = this.selectionData.fontWeight ?? 'normal';
       this._fontStyle   = this.selectionData.fontStyle  ?? 'normal';
       this._underline   = this.selectionData.underline  ?? false;
+    } else if (this._type === 'shape-tool') {
+      this._shapeType   = this.selectionData.shapeType  ?? 'circle';
+      const fill   = parseGray(this.selectionData.fill   ?? '#ffffff');
+      const stroke = parseGray(this.selectionData.stroke ?? '#000000');
+      this._fillDark    = fill.dark;
+      this._strokeDark  = stroke.dark;
+      this._strokeWidth = this.selectionData.strokeWidth ?? 2;
+    } else if (this._type === 'decoration') {
+      this._flipX = this.selectionData.flipX ?? false;
+      this._flipY = this.selectionData.flipY ?? false;
+    } else if (this._type === 'decoration-tool') {
+      this._decorationType = this.selectionData.decorationType ?? 'corner-no-one';
+      const fill   = parseGray(this.selectionData.fill   ?? '#000000');
+      const stroke = parseGray(this.selectionData.stroke ?? 'none');
+      this._fillDark    = fill.dark;
+      this._strokeDark  = stroke.dark;
+      this._strokeWidth = this.selectionData.strokeWidth ?? 0;
     } else {
       const fill   = parseGray(this.selectionData.fill   ?? '#ffffff');
       const stroke = parseGray(this.selectionData.stroke ?? '#000000');
@@ -591,8 +857,159 @@ class ShapeOptions extends LitElement {
     `;
   }
 
+  _renderShapeToolOptions() {
+    const currentShape = SHAPE_LIST.find(s => s.id === this._shapeType) ?? SHAPE_LIST[0];
+    return html`
+      <div class="group">
+        <span class="group-label">Shape</span>
+        <div class="shape-picker-drop">
+          <button class="shape-trigger ${this._shapeDropOpen ? 'open' : ''}"
+            @click=${() => this._shapeDropOpen ? this._closeShapeDrop() : this._openShapeDrop()}>
+            <span class="shape-trigger-left">
+              ${currentShape.svg}
+              ${currentShape.label}
+            </span>
+            <span class="font-trigger-arrow">▾</span>
+          </button>
+          ${this._shapeDropOpen ? html`
+            <div class="shape-dropdown">
+              ${SHAPE_LIST.map(s => html`
+                <button
+                  class="toggle-btn ${this._shapeType === s.id ? 'active' : ''}"
+                  title=${s.label}
+                  @click=${() => this._selectShape(s.id)}
+                >${s.svg}</button>
+              `)}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <span class="group-label">Fill Color</span>
+        <div class="slider-wrap">
+          <input type="range" class="shade-slider" min="0" max="100" step="1"
+            .value=${this._fillDark}
+            @input=${e => {
+              this._fillDark = +e.target.value;
+              this._change('fill', grayToRgb(this._fillDark));
+            }} />
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <span class="group-label">Border Color</span>
+        <div class="slider-wrap">
+          <input type="range" class="shade-slider" min="0" max="100" step="1"
+            .value=${this._strokeDark}
+            @input=${e => {
+              this._strokeDark = +e.target.value;
+              this._change('stroke', grayToRgb(this._strokeDark));
+            }} />
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <span class="group-label">Width</span>
+        <div class="stepper">
+          <button class="stepper-btn" @click=${() => this._step('_strokeWidth', this._strokeWidth, -1)}>−</button>
+          <span class="stepper-value">${this._strokeWidth}</span>
+          <button class="stepper-btn" @click=${() => this._step('_strokeWidth', this._strokeWidth, 1)}>+</button>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderDecorationToolOptions() {
+    const current = DECORATION_LIST.find(d => d.id === this._decorationType) ?? DECORATION_LIST[0];
+    return html`
+      <div class="group">
+        <span class="group-label">Decoration</span>
+        <div class="shape-picker-drop">
+          <button class="shape-trigger ${this._decorationDropOpen ? 'open' : ''}"
+            @click=${() => this._decorationDropOpen ? this._closeDecorationDrop() : this._openDecorationDrop()}>
+            <span class="shape-trigger-left">
+              <span class="decoration-trigger-thumb">${unsafeHTML(cleanSvg(current.svgString))}</span>
+              ${current.label}
+            </span>
+            <span class="font-trigger-arrow">▾</span>
+          </button>
+          ${this._decorationDropOpen ? html`
+            <div class="decoration-dropdown">
+              ${DECORATION_LIST.map(d => html`
+                <button
+                  class="decoration-item ${this._decorationType === d.id ? 'active' : ''}"
+                  title=${d.label}
+                  @click=${() => this._selectDecoration(d.id)}
+                >
+                  <span class="decoration-thumb">${unsafeHTML(cleanSvg(d.svgString))}</span>
+                  ${d.label}
+                </button>
+              `)}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+    `;
+  }
+
+  _renderSelectedDecorationOptions() {
+    return html`
+      <div class="group">
+        <span class="group-label">Mirror</span>
+        <div class="toggle-group">
+          <button class="toggle-btn ${this._flipX ? 'active' : ''}" title="Flip Horizontal"
+            @click=${() => {
+              this._flipX = !this._flipX;
+              this._change('flipX', this._flipX);
+            }}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M8 2 L8 14"/>
+              <path d="M2 5 L6 8 L2 11"/>
+              <path d="M14 5 L10 8 L14 11"/>
+            </svg>
+          </button>
+          <button class="toggle-btn ${this._flipY ? 'active' : ''}" title="Flip Vertical"
+            @click=${() => {
+              this._flipY = !this._flipY;
+              this._change('flipY', this._flipY);
+            }}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M2 8 L14 8"/>
+              <path d="M5 2 L8 6 L11 2"/>
+              <path d="M5 14 L8 10 L11 14"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="group">
+        <span class="group-label">Rotate</span>
+        <button class="toggle-btn" title="Rotate 90°"
+          @click=${() => this._change('rotate90', true)}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 3 A6 6 0 1 0 14 8"/>
+            <path d="M14 3 L14 7 L10 7"/>
+          </svg>
+        </button>
+      </div>
+    `;
+  }
+
   render() {
     if (this._type === 'image') return this._renderImageOptions();
+    if (this._type === 'shape-tool') return this._renderShapeToolOptions();
+    if (this._type === 'decoration-tool') return this._renderDecorationToolOptions();
+    if (this._type === 'decoration') return this._renderSelectedDecorationOptions();
     return this._type === 'i-text'
       ? this._renderTextOptions()
       : this._renderShapeOptions();

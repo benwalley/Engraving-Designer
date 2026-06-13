@@ -41,6 +41,7 @@ export class TextTool {
     canvas.defaultCursor = 'default';
     canvas.selection = true;
     canvas.getObjects().forEach(obj => {
+      if (obj._layerId?.startsWith('__boundary__')) return;
       obj.selectable = true;
       obj.evented = true;
     });

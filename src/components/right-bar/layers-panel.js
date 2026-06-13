@@ -4,6 +4,7 @@ import { on, off, emit, EVENTS } from '../../helpers/events.js';
 const TYPE_LABELS = {
   rect: 'Rectangle',
   ellipse: 'Ellipse',
+  triangle: 'Triangle',
   textbox: 'Text',
   path: 'Path',
   line: 'Line',
