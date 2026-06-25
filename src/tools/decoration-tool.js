@@ -59,6 +59,7 @@ export class DecorationTool {
     };
     on(EVENTS.TOOL_OPTIONS_CHANGED, this._onOptionsChanged);
     emit(EVENTS.SELECTION_CHANGED, { type: 'decoration-tool', decorationType: _selectedDecoration, ...defaults });
+    emit(EVENTS.HINT_CHANGED, { message: 'Click and drag on the canvas to place a decoration.' });
   }
 
   deactivate(canvas) {

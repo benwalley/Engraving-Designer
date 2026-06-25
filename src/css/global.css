@@ -28,6 +28,17 @@ editor-body-container {
     background: var(--color-bg);
 }
 
+bottom-bar-container {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 200px;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
 .sidebar-backdrop {
     display: none;
     position: fixed;
@@ -36,13 +47,29 @@ editor-body-container {
     z-index: 150;
 }
 
+mobile-tools-bar {
+    display: none;
+}
+
 @media (max-width: 800px) {
     body {
         grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto 1fr;
+    }
+
+    mobile-tools-bar {
+        display: flex;
+        grid-column: 1;
+        grid-row: 3;
     }
 
     editor-body-container {
         grid-column: 1;
+        grid-row: 4;
+    }
+
+    bottom-bar-container {
+        left: 0;
     }
 
     left-bar-container {

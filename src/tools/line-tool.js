@@ -31,6 +31,7 @@ export class LineTool {
     this._onOptionsChanged = (data) => Object.assign(defaults, data);
     on(EVENTS.TOOL_OPTIONS_CHANGED, this._onOptionsChanged);
     emit(EVENTS.SELECTION_CHANGED, { type: 'line', ...defaults });
+    emit(EVENTS.HINT_CHANGED, { message: 'Click and drag to draw a line. Hold Shift to snap to 45° angles.' });
   }
 
   deactivate(canvas) {

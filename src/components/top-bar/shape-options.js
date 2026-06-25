@@ -73,6 +73,7 @@ function grayToRgb(dark) {
   return `rgb(${n}, ${n}, ${n})`;
 }
 
+
 const SHAPE_LIST = [
   { id: 'circle',    label: 'Circle',
     svg: html`<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>` },
@@ -133,7 +134,6 @@ class ShapeOptions extends LitElement {
   static styles = css`
     :host {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       height: 100%;
       gap: calc(var(--spacing-normal) / 2) 0;

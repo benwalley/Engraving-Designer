@@ -32,6 +32,7 @@ export class TextTool {
     on(EVENTS.TOOL_OPTIONS_CHANGED, this._onOptionsChanged);
 
     emit(EVENTS.SELECTION_CHANGED, { type: 'i-text', ...defaults });
+    emit(EVENTS.HINT_CHANGED, { message: 'Click on the canvas to add a text element.' });
   }
 
   deactivate(canvas) {

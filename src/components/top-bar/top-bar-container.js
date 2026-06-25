@@ -1,7 +1,8 @@
 import { LitElement, html, css } from 'lit';
-import { on, off, EVENTS } from '../../helpers/events.js';
+import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import './shape-options.js';
+import '../icons/icon-delete.js';
 
 class TopBarContainer extends LitElement {
   static properties = {
@@ -13,11 +14,31 @@ class TopBarContainer extends LitElement {
   static styles = css`
     :host {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       padding: calc(var(--spacing-normal) / 2) 0;
       background: var(--color-surface);
       border-bottom: 1px solid var(--color-border);
+      overflow: auto;
+      min-height: 45px;
+    }
+    .delete-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: auto;
+      margin-right: var(--spacing-normal);
+      padding: 0.25rem;
+      line-height: 0;
+      background: transparent;
+      border: 1px solid var(--color-danger);
+      border-radius: 4px;
+      color: var(--color-danger);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background: var(--color-danger);
+      color: var(--color-danger-text);
     }
   `;
 
@@ -63,6 +84,10 @@ class TopBarContainer extends LitElement {
     document.body.classList.toggle('sidebar-open');
   };
 
+  _deleteLayer() {
+    if (this._selectionData?.id) emit(EVENTS.LAYER_DELETED, { id: this._selectionData.id });
+  }
+
   render() {
     return html`
       <shape-options
@@ -70,6 +95,11 @@ class TopBarContainer extends LitElement {
         .showOptions=${this._showOptions}
         .onToggleSidebar=${this._toggleSidebar}
       ></shape-options>
+      ${this._hasSelection ? html`
+        <button class="delete-btn" @click=${this._deleteLayer} title="Delete layer">
+          <icon-delete></icon-delete>
+        </button>
+      ` : ''}
     `;
   }
 }

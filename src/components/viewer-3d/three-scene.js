@@ -11,10 +11,11 @@ export class ThreeScene {
    * @param {object}      model      - product model descriptor from model-registry.js
    * @param {string}      textureDataUrl - initial engraving texture (PNG data URL)
    */
-  constructor(container, model, textureDataUrl) {
+  constructor(container, model, textureDataUrl, textureRegion = null) {
     this._container = container;
     this._model = model;
     this._textureDataUrl = textureDataUrl;
+    this._textureRegion = textureRegion;
     this._renderer = null;
     this._scene = null;
     this._camera = null;
@@ -68,7 +69,7 @@ export class ThreeScene {
     }
 
     // Apply initial texture
-    this._applyTexture(this._textureDataUrl);
+    this._applyTexture(this._textureDataUrl, this._textureRegion);
 
     // Animate
     const animate = () => {
@@ -125,7 +126,7 @@ export class ThreeScene {
     this._engraveMesh = face;
   }
 
-  _applyTexture(dataUrl) {
+  _applyTexture(dataUrl, textureRegion) {
     if (!this._engraveMesh || !dataUrl) return;
     const THREE = this._THREE;
 
@@ -154,6 +155,20 @@ export class ThreeScene {
       const roughTex = new THREE.CanvasTexture(roughCanvas);
       roughTex.needsUpdate = true;
 
+      // UV region transform: map only the guide's canvas region onto the mesh UV space.
+      // textureRegion is { x, y, width, height } as 0–1 fractions of the canvas.
+      // offset.y = 1 - y - height accounts for THREE.js flipY (UV V=0 is image bottom).
+      const applyRegion = (tex) => {
+        if (textureRegion) {
+          const { x, y, width, height } = textureRegion;
+          tex.repeat.set(width, height);
+          tex.offset.set(x, 1 - y - height);
+        }
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      };
+      applyRegion(colorTex);
+      applyRegion(roughTex);
+
       const mat = this._engraveMesh.material;
       if (mat.map)          { mat.map.dispose();          mat.map = null; }
       if (mat.roughnessMap) { mat.roughnessMap.dispose();  mat.roughnessMap = null; }
@@ -168,9 +183,10 @@ export class ThreeScene {
     img.src = dataUrl;
   }
 
-  updateTexture(dataUrl) {
+  updateTexture(dataUrl, textureRegion) {
     this._textureDataUrl = dataUrl;
-    this._applyTexture(dataUrl);
+    this._textureRegion = textureRegion;
+    this._applyTexture(dataUrl, textureRegion);
   }
 
   _onResize() {

@@ -3,9 +3,11 @@ import { Canvas as FabricCanvas, ActiveSelection, Path as FabricPath } from 'fab
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { TOOL_MAP, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import { SelectTool } from '../../tools/select-tool.js';
-import { initPanZoom } from '../../canvas/pan-zoom.js';
-import { getItem, LOCAL } from '../../helpers/local-storage.js';
+import { initPanZoom, MIN_ZOOM, MAX_ZOOM } from '../../canvas/pan-zoom.js';
+import { getItem, setItem, LOCAL } from '../../helpers/local-storage.js';
 import { getLocalDbVersionById, saveLocalDbVersion } from '../../helpers/local-db.js';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../helpers/firebase.js';
 import { guidesState, drawGuides, saveGuides, loadGuides, findGuideAtScreenPos } from '../../helpers/guides.js';
 import { History } from '../../helpers/history.js';
 import { MODEL_MAP } from '../../models/model-registry.js';
@@ -195,10 +197,12 @@ class EditorBodyContainer extends LitElement {
     on(EVENTS.UNDO_REQUESTED, this._onUndoRequested);
     on(EVENTS.REDO_REQUESTED, this._onRedoRequested);
 
+    this._skipGuides = false;
+
     this._onCanvasDataRequested = () => {
-      emit(EVENTS.CANVAS_DATA_READY, {
-        canvasData: this._canvas.toJSON(['_layerId', '_layerName', '_isDecoration']),
-      });
+      const canvasData = this._canvas.toJSON(['_layerId', '_layerName', '_isDecoration']);
+      const thumbnailDataUrl = this._generateThumbnailDataUrl();
+      emit(EVENTS.CANVAS_DATA_READY, { canvasData, thumbnailDataUrl });
     };
     on(EVENTS.CANVAS_DATA_REQUESTED, this._onCanvasDataRequested);
 
@@ -274,6 +278,35 @@ class EditorBodyContainer extends LitElement {
     this._onUpperMouseDown = (e) => this._guideUpperMouseDown(e);
     this._canvas.upperCanvasEl.addEventListener('mousemove', this._onUpperMouseMove);
     this._canvas.upperCanvasEl.addEventListener('mousedown', this._onUpperMouseDown, { capture: true });
+
+    const snapshotId = new URLSearchParams(window.location.search).get('snapshot');
+    if (snapshotId) this._loadSnapshotFromUrl(snapshotId);
+  }
+
+  async _loadSnapshotFromUrl(snapshotId) {
+    try {
+      const snap = await getDoc(doc(db, 'snapshots', snapshotId));
+      if (!snap.exists()) {
+        console.warn(`Snapshot not found: ${snapshotId}`);
+        return;
+      }
+      const snapshot = snap.data();
+      const newVersion = {
+        id: crypto.randomUUID(),
+        name: `Snapshot ${snapshotId.slice(0, 6)}`,
+        data: typeof snapshot.canvasData === 'string' ? JSON.parse(snapshot.canvasData) : (snapshot.canvasData ?? {}),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      await saveLocalDbVersion(newVersion);
+      setItem(LOCAL.CURRENT_VERSION_ID, newVersion.id);
+      if (snapshot.modelId) {
+        emit(EVENTS.MODEL_SELECTED, { modelId: snapshot.modelId });
+      }
+      emit(EVENTS.VERSION_SELECTED, newVersion);
+    } catch (err) {
+      console.error('Snapshot URL load failed:', err);
+    }
   }
 
   // ── Guide drag (document-level) ───────────────────────────────────────────
@@ -379,7 +412,16 @@ class EditorBodyContainer extends LitElement {
   // ── Drawing ───────────────────────────────────────────────────────────────
 
   _drawGuides() {
+    if (this._skipGuides) return;
     drawGuides(this._canvas.contextContainer, this._canvas.viewportTransform);
+  }
+
+  _generateThumbnailDataUrl() {
+    this._skipGuides = true;
+    const dataUrl = this._canvas.toDataURL({ format: 'jpeg', quality: 1 });
+    this._skipGuides = false;
+    this._canvas.requestRenderAll();
+    return dataUrl;
   }
 
   // ── Rest of existing methods ───────────────────────────────────────────────
@@ -522,8 +564,26 @@ class EditorBodyContainer extends LitElement {
   _resize() {
     const { width, height } = this.getBoundingClientRect();
     if (!this._canvas) return;
+
+    const prevBase = this._canvas._baseZoom;
+    const prevZoom = prevBase ? this._canvas.getZoom() : null;
+
     this._canvas.setDimensions({ width: width - RULER_SIZE, height: height - RULER_SIZE });
-    this._fitViewToCanvas();
+
+    const cw = this._canvas.width;
+    const ch = this._canvas.height;
+    const newBase = Math.min((cw * 0.9) / CANVAS_WIDTH, (ch * 0.9) / CANVAS_HEIGHT);
+    this._canvas._baseZoom = newBase;
+
+    const zoom = prevBase && prevZoom
+      ? Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newBase * (prevZoom / prevBase)))
+      : newBase;
+
+    const tx = cw / 2 - (CANVAS_WIDTH  / 2) * zoom;
+    const ty = ch / 2 - (CANVAS_HEIGHT / 2) * zoom;
+    this._canvas.setViewportTransform([zoom, 0, 0, zoom, tx, ty]);
+    this._canvas.requestRenderAll();
+    emit(EVENTS.ZOOM_CHANGED, { zoom: this._canvas.getZoom() });
   }
 
   disconnectedCallback() {

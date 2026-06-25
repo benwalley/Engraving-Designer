@@ -98,6 +98,11 @@ class LeftBarContainer extends LitElement {
     .btn-primary:hover {
       background: var(--color-accent-subtle-active);
     }
+
+    @media (max-width: 800px) {
+      .tools-container,
+      .panel-divider { display: none; }
+    }
   `;
 
   _selectTool(id) {

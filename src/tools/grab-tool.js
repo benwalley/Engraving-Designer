@@ -1,4 +1,5 @@
 import { Point } from 'fabric';
+import { emit, EVENTS } from '../helpers/events.js';
 
 export class GrabTool {
   activate(canvas) {
@@ -23,6 +24,8 @@ export class GrabTool {
     canvas.on('mouse:down', this._onDown);
     canvas.on('mouse:move', this._onMove);
     canvas.on('mouse:up',   this._onUp);
+
+    emit(EVENTS.HINT_CHANGED, { message: 'Click and drag to pan the canvas.' });
   }
 
   deactivate(canvas) {
@@ -45,17 +48,17 @@ export class GrabTool {
     if (opt.e.button != null && opt.e.button !== 0) return;
     opt.e.preventDefault?.();
     this._panning = true;
-    this._lastX = opt.pointer.x;
-    this._lastY = opt.pointer.y;
+    this._lastX = opt.viewportPoint.x;
+    this._lastY = opt.viewportPoint.y;
     this._canvas.defaultCursor = 'grabbing';
   }
 
   _move(opt) {
     if (!this._panning) return;
-    const dx = opt.pointer.x - this._lastX;
-    const dy = opt.pointer.y - this._lastY;
-    this._lastX = opt.pointer.x;
-    this._lastY = opt.pointer.y;
+    const dx = opt.viewportPoint.x - this._lastX;
+    const dy = opt.viewportPoint.y - this._lastY;
+    this._lastX = opt.viewportPoint.x;
+    this._lastY = opt.viewportPoint.y;
     this._canvas.relativePan(new Point(dx, dy));
   }
 

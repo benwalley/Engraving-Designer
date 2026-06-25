@@ -55,6 +55,7 @@ export class ShapeTool {
     };
     on(EVENTS.TOOL_OPTIONS_CHANGED, this._onOptionsChanged);
     emit(EVENTS.SELECTION_CHANGED, { type: 'shape-tool', shapeType: _selectedShape, ...defaults });
+    emit(EVENTS.HINT_CHANGED, { message: 'Click and drag on the canvas to draw a shape.' });
   }
 
   deactivate(canvas) {

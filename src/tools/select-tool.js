@@ -43,6 +43,7 @@ export class SelectTool {
     this._emitSelection = (opt) => {
       const obj = opt?.selected?.[0] ?? canvas.getActiveObject();
       if (!obj) return;
+      emit(EVENTS.HINT_CHANGED, { message: 'Use the top bar to adjust properties. Press Delete to remove.' });
       if (obj.type === 'i-text') {
         emit(EVENTS.SELECTION_CHANGED, {
           id:         obj._layerId,
@@ -118,15 +119,30 @@ export class SelectTool {
       canvas.renderAll();
     };
 
-    this._clearSelection = () => emit(EVENTS.SELECTION_CHANGED, null);
+    this._clearSelection = () => {
+      emit(EVENTS.SELECTION_CHANGED, null);
+      emit(EVENTS.HINT_CHANGED, { message: 'Click any object to select it. Drag to move.' });
+    };
 
     this._onKeyDown = (e) => {
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       if (e.target.closest('input, textarea, [contenteditable]')) return;
       const obj = canvas.getActiveObject();
       if (!obj || obj.isEditing) return;
-      canvas.remove(obj);
-      canvas.discardActiveObject();
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        canvas.remove(obj);
+        canvas.discardActiveObject();
+        return;
+      }
+
+      const ARROW_KEYS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+      const delta = ARROW_KEYS[e.key];
+      if (!delta) return;
+      e.preventDefault();
+      const step = e.shiftKey ? 10 : 1;
+      obj.set({ left: obj.left + delta[0] * step, top: obj.top + delta[1] * step });
+      obj.setCoords();
+      canvas.renderAll();
     };
     document.addEventListener('keydown', this._onKeyDown);
 
@@ -134,6 +150,8 @@ export class SelectTool {
     canvas.on('selection:updated', this._emitSelection);
     canvas.on('selection:cleared', this._clearSelection);
     on(EVENTS.TOOL_OPTIONS_CHANGED, this._onOptionsChanged);
+
+    emit(EVENTS.HINT_CHANGED, { message: 'Click any object to select it. Drag to move.' });
   }
 
   deactivate(canvas) {

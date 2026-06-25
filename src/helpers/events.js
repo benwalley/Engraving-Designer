@@ -22,6 +22,7 @@ export const EVENTS = {
   VIEW_3D_CLOSE:          'viewer:3d-close',
   CANVAS_DATA_REQUESTED:  'canvas:data-requested',
   CANVAS_DATA_READY:      'canvas:data-ready',
+  HINT_CHANGED:           'hint:changed',
 };
 
 const listeners = new Map();

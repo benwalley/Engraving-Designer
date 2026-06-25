@@ -159,12 +159,12 @@ class Viewer3dModal extends LitElement {
 
     this._fabricCanvas = this._getFabricCanvas();
     const boundaryLayerId = '__boundary__' + model.id;
-    const texture = this._fabricCanvas
-      ? await exportEngravingTexture(this._fabricCanvas, boundaryLayerId)
-      : null;
+    const { dataUrl, textureRegion } = this._fabricCanvas
+      ? await exportEngravingTexture(this._fabricCanvas, boundaryLayerId, model)
+      : { dataUrl: null, textureRegion: null };
 
     const container = this.shadowRoot.querySelector('.scene-container');
-    this._scene = new ThreeScene(container, model, texture);
+    this._scene = new ThreeScene(container, model, dataUrl, textureRegion);
 
     try {
       await this._scene.load();
@@ -187,8 +187,8 @@ class Viewer3dModal extends LitElement {
     const modelId = getItem(LOCAL.CURRENT_MODEL_ID);
     const model = modelId ? MODEL_MAP[modelId] : null;
     if (!model) return;
-    const texture = await exportEngravingTexture(this._fabricCanvas, '__boundary__' + model.id);
-    this._scene.updateTexture(texture);
+    const { dataUrl, textureRegion } = await exportEngravingTexture(this._fabricCanvas, '__boundary__' + model.id, model);
+    this._scene.updateTexture(dataUrl, textureRegion);
   }
 
   _close() {

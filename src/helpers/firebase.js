@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Replace these values with your Firebase project config.
 // 1. Go to https://console.firebase.google.com and create a project
@@ -15,4 +16,6 @@ const firebaseConfig = {
   measurementId: "G-DS8Z2B0JHZ"
 };
 
-export const db = getFirestore(initializeApp(firebaseConfig));
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const storage = getStorage(app);

@@ -25,6 +25,8 @@ export class ImageTool {
 
     this._onDown = this._down.bind(this);
     canvas.on('mouse:down', this._onDown);
+
+    emit(EVENTS.HINT_CHANGED, { message: 'Click anywhere on the canvas to upload an image.' });
   }
 
   deactivate(canvas) {

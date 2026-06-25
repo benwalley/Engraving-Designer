@@ -115,7 +115,7 @@ class LoadSnapshotButton extends LitElement {
       const newVersion = {
         id: crypto.randomUUID(),
         name: `Snapshot ${id.slice(0, 6)}`,
-        data: snapshot.canvasData ?? {},
+        data: typeof snapshot.canvasData === 'string' ? JSON.parse(snapshot.canvasData) : (snapshot.canvasData ?? {}),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };

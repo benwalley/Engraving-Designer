@@ -87,7 +87,7 @@ class SaveSnapshotButton extends LitElement {
     this._error = null;
 
     try {
-      const canvasData = await this._requestCanvasData();
+      const { canvasData, thumbnailDataUrl } = await this._requestCanvasData();
 
       if (!canvasData) {
         this._error = 'No active design to snapshot.';
@@ -100,7 +100,8 @@ class SaveSnapshotButton extends LitElement {
       const modelId = getItem(LOCAL.CURRENT_MODEL_ID);
 
       const docRef = await addDoc(collection(db, 'snapshots'), {
-        canvasData,
+        canvasData: JSON.stringify(canvasData),
+        thumbnailDataUrl: thumbnailDataUrl ?? null,
         modelId: modelId ?? null,
         versionName: version?.name ?? 'Untitled',
         createdAt: serverTimestamp(),
@@ -111,16 +112,43 @@ class SaveSnapshotButton extends LitElement {
       document.addEventListener('click', this._closeOnOutsideClick);
     } catch (err) {
       console.error('Snapshot save failed:', err);
-      this._error = 'Failed to save snapshot. Check Firebase config.';
+      this._error = this._friendlyError(err);
       this._status = 'error';
+      document.addEventListener('click', this._closeOnOutsideClick);
+    }
+  }
+
+  _friendlyError(err) {
+    switch (err?.code) {
+      case 'permission-denied':
+      case 'firestore/permission-denied':
+        return 'Permission denied. Check your Firebase security rules.';
+      case 'unavailable':
+      case 'firestore/unavailable':
+        return 'Could not reach Firebase. Check your internet connection.';
+      case 'quota-exceeded':
+      case 'firestore/quota-exceeded':
+        return 'Firebase quota exceeded. Try again later.';
+      case 'unauthenticated':
+      case 'firestore/unauthenticated':
+        return 'Authentication required. Please sign in.';
+      case 'storage/unauthorized':
+        return 'Storage permission denied. Check your Firebase security rules.';
+      case 'storage/quota-exceeded':
+        return 'Firebase Storage quota exceeded. Try again later.';
+      default:
+        return err?.message
+          ? `Save failed: ${err.message}`
+          : 'Failed to save snapshot. Check your Firebase config.';
     }
   }
 
   _requestCanvasData() {
     return new Promise((resolve) => {
-      const handler = ({ canvasData }) => {
+      const handler = ({ canvasData, thumbnailDataUrl }) => {
         off(EVENTS.CANVAS_DATA_READY, handler);
-        resolve(canvasData && Object.keys(canvasData).length ? canvasData : null);
+        const validData = canvasData && Object.keys(canvasData).length ? canvasData : null;
+        resolve({ canvasData: validData, thumbnailDataUrl: thumbnailDataUrl ?? null });
       };
       on(EVENTS.CANVAS_DATA_READY, handler);
       emit(EVENTS.CANVAS_DATA_REQUESTED);
@@ -136,6 +164,13 @@ class SaveSnapshotButton extends LitElement {
     await navigator.clipboard.writeText(this._snapshotUrl);
     this._copied = true;
     setTimeout(() => { this._copied = false; }, 2000);
+  }
+
+  _handleRetry() {
+    this._status = 'idle';
+    this._error = null;
+    document.removeEventListener('click', this._closeOnOutsideClick);
+    this._handleClick();
   }
 
   _handleClose() {
@@ -183,6 +218,7 @@ class SaveSnapshotButton extends LitElement {
         <div class="success-popup">
           <p class="error-text">${this._error}</p>
           <div class="id-row">
+            <button type="button" @click=${this._handleRetry}>Try Again</button>
             <button type="button" @click=${this._handleClose}>Dismiss</button>
           </div>
         </div>
