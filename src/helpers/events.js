@@ -23,6 +23,9 @@ export const EVENTS = {
   CANVAS_DATA_REQUESTED:  'canvas:data-requested',
   CANVAS_DATA_READY:      'canvas:data-ready',
   HINT_CHANGED:           'hint:changed',
+  CLIP_BOUNDARY_TOGGLED:  'clip:boundary-toggled',
+  OPEN_ICONIFY_PICKER:    'iconify:open',
+  ICONIFY_ICON_SELECTED:  'iconify:selected',
 };
 
 const listeners = new Map();

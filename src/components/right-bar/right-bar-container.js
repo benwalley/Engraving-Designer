@@ -1,5 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { emit, EVENTS } from "../../helpers/events.js";
+import { ENABLE_3D } from "../../helpers/feature-flags.js";
 
 class RightBarContainer extends LitElement {
   static styles = [
@@ -69,9 +70,7 @@ class RightBarContainer extends LitElement {
         <button class="action-btn btn-primary" @click=${() => emit(EVENTS.SELECT_ITEM_TO_ENGRAVE)}>
           Select Item to Engrave
         </button>
-        <button class="action-btn btn-secondary" @click=${() => emit(EVENTS.VIEW_3D)}>
-          3D Viewer
-        </button>
+        ${ENABLE_3D ? html`<button class="action-btn btn-secondary" @click=${() => emit(EVENTS.VIEW_3D)}>3D Viewer</button>` : ''}
       </div>
     `;
   }

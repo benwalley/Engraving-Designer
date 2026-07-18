@@ -29,8 +29,8 @@ class ModelPickerModal extends LitElement {
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-dropdown);
-      width: min(640px, 90vw);
-      max-height: 80vh;
+      width: min(1100px, 95vw);
+      max-height: 90vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -72,9 +72,9 @@ class ModelPickerModal extends LitElement {
 
     .model-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 12px;
-      padding: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      padding: 24px;
       overflow-y: auto;
     }
 
@@ -221,7 +221,6 @@ class ModelPickerModal extends LitElement {
                     : html`<span>No preview</span>`
                   }
                 </div>
-                <div class="model-name">${model.name}</div>
               </div>
             `)}
           </div>

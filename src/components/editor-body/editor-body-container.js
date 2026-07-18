@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { Canvas as FabricCanvas, ActiveSelection, Path as FabricPath } from 'fabric';
+import { Canvas as FabricCanvas, ActiveSelection, Path as FabricPath, loadSVGFromString, util as fabricUtil } from 'fabric';
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { TOOL_MAP, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import { SelectTool } from '../../tools/select-tool.js';
@@ -68,6 +68,7 @@ class EditorBodyContainer extends LitElement {
     this._draggingGuide = null; // { type: 'h'|'v', index: number }
     this._dragAnchor = null;   // { clientX, clientY, sceneVal }
     this._hoverGuide = null;   // { type: 'h'|'v', index: number }
+    this._clipToBoundary = false;
 
     const canvasEl = this.shadowRoot.querySelector('canvas');
     const style = getComputedStyle(document.documentElement);
@@ -205,6 +206,20 @@ class EditorBodyContainer extends LitElement {
       emit(EVENTS.CANVAS_DATA_READY, { canvasData, thumbnailDataUrl });
     };
     on(EVENTS.CANVAS_DATA_REQUESTED, this._onCanvasDataRequested);
+
+    this._onClipBoundaryToggled = ({ active }) => {
+      this._clipToBoundary = active;
+      if (active) {
+        this._applyClipPath();
+      } else {
+        this._canvas.clipPath = null;
+        this._canvas.requestRenderAll();
+      }
+    };
+    on(EVENTS.CLIP_BOUNDARY_TOGGLED, this._onClipBoundaryToggled);
+
+    this._onIconifyIconSelected = ({ svgString }) => this._placeIconifySvg(svgString);
+    on(EVENTS.ICONIFY_ICON_SELECTED, this._onIconifyIconSelected);
 
     this._clipboard = null;
     this._pasteOffset = 0;
@@ -490,6 +505,42 @@ class EditorBodyContainer extends LitElement {
 
     this._canvas.add(guide);
     if (fitView) this._fitViewToCanvas();
+    if (this._clipToBoundary) await this._applyClipPath();
+    this._canvas.renderAll();
+  }
+
+  async _applyClipPath() {
+    const boundaryObj = this._canvas.getObjects().find(
+      o => o._layerId?.startsWith('__boundary__')
+    );
+    if (!boundaryObj) return;
+    const clip = await boundaryObj.clone();
+    clip.set({ fill: 'black', absolutePositioned: false });
+    this._canvas.clipPath = clip;
+    this._canvas.requestRenderAll();
+  }
+
+  async _placeIconifySvg(svgString) {
+    const { objects, options } = await loadSVGFromString(svgString);
+    const shape = fabricUtil.groupSVGElements(objects, options);
+    const maxDim = 150;
+    const naturalW = shape.width  || 100;
+    const naturalH = shape.height || 100;
+    const scale = Math.min(maxDim / naturalW, maxDim / naturalH);
+    shape.set({
+      left: CANVAS_WIDTH  / 2,
+      top:  CANVAS_HEIGHT / 2,
+      originX: 'center',
+      originY: 'center',
+      scaleX: scale,
+      scaleY: scale,
+      _isDecoration: true,
+    });
+    this._canvas.add(shape);
+    this._switchTool('select');
+    emit(EVENTS.TOOL_CHANGED, { id: 'select' });
+    this._canvas.setActiveObject(shape);
+    this._canvas.fire('selection:created', { selected: [shape] });
     this._canvas.renderAll();
   }
 
@@ -600,6 +651,8 @@ class EditorBodyContainer extends LitElement {
     off(EVENTS.UNDO_REQUESTED,         this._onUndoRequested);
     off(EVENTS.REDO_REQUESTED,         this._onRedoRequested);
     off(EVENTS.CANVAS_DATA_REQUESTED,  this._onCanvasDataRequested);
+    off(EVENTS.CLIP_BOUNDARY_TOGGLED,  this._onClipBoundaryToggled);
+    off(EVENTS.ICONIFY_ICON_SELECTED,  this._onIconifyIconSelected);
     document.removeEventListener('keydown', this._onCopyPaste);
     document.removeEventListener('mousemove', this._onDocMouseMove);
     document.removeEventListener('mouseup',   this._onDocMouseUp);

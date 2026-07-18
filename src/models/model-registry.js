@@ -26,6 +26,21 @@ export const PRODUCT_MODELS = [
     boundaryPath: 'M 10 0 L 90 0 A 10 10 0 0 1 100 10 L 100 196 A 10 10 0 0 1 90 206 L 10 206 A 10 10 0 0 1 0 196 L 0 10 A 10 10 0 0 1 10 0 Z',
     canvasRegion: null,
   },
+  {
+    id: 'bar-pendant',
+    name: 'Bar Pendant',
+    thumbnail: null,
+    glbPath: '/models/bar-pendant/model.glb',
+    engraveMeshName: 'engrage',
+    baseTexturePath: null,
+    // SVG file defines the exact boundary shape — edit this in Illustrator/Figma/Inkscape.
+    // The SVG is fetched at runtime; all <path> elements are combined into a compound path.
+    // Add additional sub-paths for holes (evenodd fill rule cuts them out automatically).
+    boundarySvgPath: '/models/bar-pendant/boundary.svg',
+    // Inline fallback used if the SVG fails to load
+    boundaryPath: 'M 10 0 L 90 0 A 10 10 0 0 1 100 10 L 100 196 A 10 10 0 0 1 90 206 L 10 206 A 10 10 0 0 1 0 196 L 0 10 A 10 10 0 0 1 10 0 Z',
+    canvasRegion: null,
+  },
 ];
 
 export const MODEL_MAP = Object.fromEntries(PRODUCT_MODELS.map(m => [m.id, m]));

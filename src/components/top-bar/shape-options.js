@@ -112,13 +112,10 @@ class ShapeOptions extends LitElement {
     _rx:                { state: true },
     _type:              { state: true },
     _shapeType:         { state: true },
-    _shapeDropOpen:     { state: true },
     _decorationType:    { state: true },
-    _decorationDropOpen:{ state: true },
     _flipX:             { state: true },
     _flipY:             { state: true },
     _fontFamily:        { state: true },
-    _fontDropOpen:      { state: true },
     _fontSize:          { state: true },
     _fontWeight:        { state: true },
     _fontStyle:         { state: true },
@@ -305,11 +302,7 @@ class ShapeOptions extends LitElement {
       user-select: none;
     }
 
-    /* ── Font picker ── */
-    .font-picker {
-      position: relative;
-    }
-
+    /* ── Font picker trigger ── */
     .font-trigger {
       height: 26px;
       min-width: 160px;
@@ -333,10 +326,6 @@ class ShapeOptions extends LitElement {
       border-color: var(--color-border-hover);
     }
 
-    .font-trigger.open {
-      border-color: var(--color-accent);
-    }
-
     .font-trigger-arrow {
       font-size: 9px;
       color: var(--color-text-muted);
@@ -344,15 +333,8 @@ class ShapeOptions extends LitElement {
       font-family: sans-serif;
     }
 
+    /* ── Font dropdown panel ── */
     .font-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      z-index: 1000;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
       max-height: 280px;
       overflow-y: auto;
       min-width: 200px;
@@ -383,11 +365,7 @@ class ShapeOptions extends LitElement {
       gap: 3px;
     }
 
-    /* ── Shape dropdown ── */
-    .shape-picker-drop {
-      position: relative;
-    }
-
+    /* ── Shape / decoration trigger ── */
     .shape-trigger {
       height: 26px;
       min-width: 120px;
@@ -410,10 +388,6 @@ class ShapeOptions extends LitElement {
       border-color: var(--color-border-hover);
     }
 
-    .shape-trigger.open {
-      border-color: var(--color-accent);
-    }
-
     .shape-trigger-left {
       display: flex;
       align-items: center;
@@ -426,63 +400,55 @@ class ShapeOptions extends LitElement {
       flex-shrink: 0;
     }
 
+    /* ── Shape dropdown panel ── */
     .shape-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      z-index: 1000;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
       padding: 6px;
       display: grid;
-      grid-template-columns: repeat(4, 26px);
-      gap: 3px;
+      grid-template-columns: repeat(4, 50px);
+      gap: 4px;
     }
 
+    /* ── Decoration dropdown panel ── */
     .decoration-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      z-index: 1000;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
-      padding: 4px 0;
-      min-width: 180px;
+      padding: 6px;
+      display: grid;
+      grid-template-columns: repeat(4, 50px);
+      gap: 4px;
     }
 
     .decoration-item {
-      width: 100%;
-      height: 44px;
-      border: none;
-      border-radius: 0;
-      background: transparent;
+      width: 50px;
+      height: 50px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-bg);
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 0 12px;
-      font-size: 13px;
-      color: var(--color-text);
-      transition: background var(--duration-fast) var(--easing-default);
+      justify-content: center;
+      color: var(--color-text-muted);
+      transition: background var(--duration-fast) var(--easing-default),
+                  color var(--duration-fast) var(--easing-default),
+                  border-color var(--duration-fast) var(--easing-default);
       user-select: none;
+      padding: 0;
     }
 
     .decoration-item:hover {
       background: var(--color-accent-subtle);
+      color: var(--color-accent-text);
+      border-color: var(--color-border-hover);
     }
 
     .decoration-item.active {
       background: var(--color-accent-subtle);
       color: var(--color-accent);
+      border-color: var(--color-accent);
     }
 
     .decoration-thumb {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
@@ -528,14 +494,14 @@ class ShapeOptions extends LitElement {
     }
 
     .toggle-btn svg {
-      width: 14px;
-      height: 14px;
+      width: 28px;
+      height: 28px;
       display: block;
     }
 
     .toggle-btn {
-      width: 26px;
-      height: 26px;
+      width: 50px;
+      height: 50px;
       border: 1px solid var(--color-border);
       border-radius: 6px;
       background: var(--color-bg);
@@ -601,13 +567,10 @@ class ShapeOptions extends LitElement {
     this._rx            = 0;
     this._type          = '';
     this._shapeType         = 'circle';
-    this._shapeDropOpen     = false;
     this._decorationType    = 'corner-no-one';
-    this._decorationDropOpen = false;
     this._flipX             = false;
     this._flipY             = false;
     this._fontFamily        = 'Arial';
-    this._fontDropOpen  = false;
     this._fontSize      = 24;
     this._fontWeight    = 'normal';
     this._fontStyle     = 'normal';
@@ -618,83 +581,22 @@ class ShapeOptions extends LitElement {
     this._inverted      = false;
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this._closeFontDrop();
-    this._closeShapeDrop();
-    this._closeDecorationDrop();
-  }
-
-  _openShapeDrop() {
-    this._shapeDropOpen = true;
-    this._outsideShapeClick = (e) => {
-      if (!this.renderRoot.contains(e.composedPath()[0])) {
-        this._closeShapeDrop();
-      }
-    };
-    setTimeout(() => document.addEventListener('click', this._outsideShapeClick), 0);
-  }
-
-  _closeShapeDrop() {
-    this._shapeDropOpen = false;
-    if (this._outsideShapeClick) {
-      document.removeEventListener('click', this._outsideShapeClick);
-      this._outsideShapeClick = null;
-    }
-  }
-
   _selectShape(id) {
     this._shapeType = id;
     emit(EVENTS.TOOL_OPTIONS_CHANGED, { shapeType: id });
-    this._closeShapeDrop();
-  }
-
-  _openDecorationDrop() {
-    this._decorationDropOpen = true;
-    this._outsideDecorationClick = (e) => {
-      if (!this.renderRoot.contains(e.composedPath()[0])) {
-        this._closeDecorationDrop();
-      }
-    };
-    setTimeout(() => document.addEventListener('click', this._outsideDecorationClick), 0);
-  }
-
-  _closeDecorationDrop() {
-    this._decorationDropOpen = false;
-    if (this._outsideDecorationClick) {
-      document.removeEventListener('click', this._outsideDecorationClick);
-      this._outsideDecorationClick = null;
-    }
+    this.renderRoot.querySelector('#shape-popup').close();
   }
 
   _selectDecoration(id) {
     this._decorationType = id;
     emit(EVENTS.TOOL_OPTIONS_CHANGED, { decorationType: id });
-    this._closeDecorationDrop();
-  }
-
-  _openFontDrop() {
-    this._fontDropOpen = true;
-    this._outsideClick = (e) => {
-      if (!this.renderRoot.contains(e.composedPath()[0])) {
-        this._closeFontDrop();
-      }
-    };
-    setTimeout(() => document.addEventListener('click', this._outsideClick), 0);
-  }
-
-  _closeFontDrop() {
-    this._fontDropOpen = false;
-    if (this._outsideClick) {
-      document.removeEventListener('click', this._outsideClick);
-      this._outsideClick = null;
-    }
+    this.renderRoot.querySelector('#decoration-popup').close();
   }
 
   _selectFont(font) {
     this._fontFamily = font;
     this._change('fontFamily', font);
-    this._closeFontDrop();
+    this.renderRoot.querySelector('#font-popup').close();
   }
 
   willUpdate(changedProps) {
@@ -779,25 +681,22 @@ class ShapeOptions extends LitElement {
 
       <div class="group">
         <span class="group-label">Font</span>
-        <div class="font-picker">
-          <button class="font-trigger ${this._fontDropOpen ? 'open' : ''}"
-            style="font-family: '${this._fontFamily}'"
-            @click=${() => this._fontDropOpen ? this._closeFontDrop() : this._openFontDrop()}>
+        <popup-menu id="font-popup">
+          <button slot="trigger" class="font-trigger"
+            style="font-family: '${this._fontFamily}'">
             ${this._fontFamily}
             <span class="font-trigger-arrow">▾</span>
           </button>
-          ${this._fontDropOpen ? html`
-            <div class="font-dropdown">
-              ${FONTS.map(f => html`
-                <div class="font-option ${f === this._fontFamily ? 'selected' : ''}"
-                     style="font-family: '${f}'"
-                     @click=${() => this._selectFont(f)}>
-                  ${f}
-                </div>
-              `)}
-            </div>
-          ` : ''}
-        </div>
+          <div class="font-dropdown">
+            ${FONTS.map(f => html`
+              <div class="font-option ${f === this._fontFamily ? 'selected' : ''}"
+                   style="font-family: '${f}'"
+                   @click=${() => this._selectFont(f)}>
+                ${f}
+              </div>
+            `)}
+          </div>
+        </popup-menu>
       </div>
 
       <div class="sep"></div>
@@ -934,27 +833,24 @@ class ShapeOptions extends LitElement {
     return html`
       <div class="group">
         <span class="group-label">Shape</span>
-        <div class="shape-picker-drop">
-          <button class="shape-trigger ${this._shapeDropOpen ? 'open' : ''}"
-            @click=${() => this._shapeDropOpen ? this._closeShapeDrop() : this._openShapeDrop()}>
+        <popup-menu id="shape-popup">
+          <button slot="trigger" class="shape-trigger">
             <span class="shape-trigger-left">
               ${currentShape.svg}
               ${currentShape.label}
             </span>
             <span class="font-trigger-arrow">▾</span>
           </button>
-          ${this._shapeDropOpen ? html`
-            <div class="shape-dropdown">
-              ${SHAPE_LIST.map(s => html`
-                <button
-                  class="toggle-btn ${this._shapeType === s.id ? 'active' : ''}"
-                  title=${s.label}
-                  @click=${() => this._selectShape(s.id)}
-                >${s.svg}</button>
-              `)}
-            </div>
-          ` : ''}
-        </div>
+          <div class="shape-dropdown">
+            ${SHAPE_LIST.map(s => html`
+              <button
+                class="toggle-btn ${this._shapeType === s.id ? 'active' : ''}"
+                title=${s.label}
+                @click=${() => this._selectShape(s.id)}
+              >${s.svg}</button>
+            `)}
+          </div>
+        </popup-menu>
       </div>
 
       <div class="sep"></div>
@@ -1003,30 +899,26 @@ class ShapeOptions extends LitElement {
     return html`
       <div class="group">
         <span class="group-label">Decoration</span>
-        <div class="shape-picker-drop">
-          <button class="shape-trigger ${this._decorationDropOpen ? 'open' : ''}"
-            @click=${() => this._decorationDropOpen ? this._closeDecorationDrop() : this._openDecorationDrop()}>
+        <popup-menu id="decoration-popup">
+          <button slot="trigger" class="shape-trigger">
             <span class="shape-trigger-left">
               <span class="decoration-trigger-thumb">${unsafeHTML(cleanSvg(current.svgString))}</span>
               ${current.label}
             </span>
             <span class="font-trigger-arrow">▾</span>
           </button>
-          ${this._decorationDropOpen ? html`
-            <div class="decoration-dropdown">
-              ${DECORATION_LIST.map(d => html`
-                <button
-                  class="decoration-item ${this._decorationType === d.id ? 'active' : ''}"
-                  title=${d.label}
-                  @click=${() => this._selectDecoration(d.id)}
-                >
-                  <span class="decoration-thumb">${unsafeHTML(cleanSvg(d.svgString))}</span>
-                  ${d.label}
-                </button>
-              `)}
-            </div>
-          ` : ''}
-        </div>
+          <div class="decoration-dropdown">
+            ${DECORATION_LIST.map(d => html`
+              <button
+                class="decoration-item ${this._decorationType === d.id ? 'active' : ''}"
+                title=${d.label}
+                @click=${() => this._selectDecoration(d.id)}
+              >
+                <span class="decoration-thumb">${unsafeHTML(cleanSvg(d.svgString))}</span>
+              </button>
+            `)}
+          </div>
+        </popup-menu>
       </div>
 
     `;

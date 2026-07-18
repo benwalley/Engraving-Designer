@@ -1,8 +1,10 @@
 import { LitElement, html, css } from 'lit';
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
+import { ENABLE_3D } from '../../helpers/feature-flags.js';
 import { TOOLS, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import './tool-button.js';
 import '../right-bar/layers-panel.js';
+import '../icons/icon-tool-icons.js';
 
 class LeftBarContainer extends LitElement {
   static properties = {
@@ -122,6 +124,9 @@ class LeftBarContainer extends LitElement {
             ${tool.icon}
           </tool-button>
         `)}
+        <tool-button label="Icons" @click=${() => emit(EVENTS.OPEN_ICONIFY_PICKER)}>
+          <icon-tool-icons></icon-tool-icons>
+        </tool-button>
       </div>
       <hr class="panel-divider" />
       <layers-panel></layers-panel>
@@ -129,9 +134,7 @@ class LeftBarContainer extends LitElement {
         <button class="action-btn btn-primary" @click=${() => emit(EVENTS.SELECT_ITEM_TO_ENGRAVE)}>
           Select Item to Engrave
         </button>
-        <button class="action-btn" @click=${() => emit(EVENTS.VIEW_3D)}>
-          3D Viewer
-        </button>
+        ${ENABLE_3D ? html`<button class="action-btn" @click=${() => emit(EVENTS.VIEW_3D)}>3D Viewer</button>` : ''}
       </div>
     `;
   }
