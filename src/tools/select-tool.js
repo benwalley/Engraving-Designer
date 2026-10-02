@@ -146,6 +146,14 @@ export class SelectTool {
     };
     document.addEventListener('keydown', this._onKeyDown);
 
+    this._onRotating = (opt) => {
+      if (!opt.e?.shiftKey) return;
+      const SNAP = 22.5;
+      opt.target.rotate((Math.round(opt.target.angle / SNAP) * SNAP) % 360);
+      opt.target.setCoords();
+    };
+
+    canvas.on('object:rotating', this._onRotating);
     canvas.on('selection:created', this._emitSelection);
     canvas.on('selection:updated', this._emitSelection);
     canvas.on('selection:cleared', this._clearSelection);
@@ -156,6 +164,7 @@ export class SelectTool {
 
   deactivate(canvas) {
     document.removeEventListener('keydown', this._onKeyDown);
+    canvas.off('object:rotating', this._onRotating);
     canvas.off('selection:created', this._emitSelection);
     canvas.off('selection:updated', this._emitSelection);
     canvas.off('selection:cleared', this._clearSelection);

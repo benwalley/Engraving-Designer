@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { Canvas as FabricCanvas, ActiveSelection, Path as FabricPath, loadSVGFromString, util as fabricUtil } from 'fabric';
+import { Canvas as FabricCanvas, ActiveSelection, Path as FabricPath, loadSVGFromString, util as fabricUtil, cache as fabricCache } from 'fabric';
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { TOOL_MAP, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import { SelectTool } from '../../tools/select-tool.js';
@@ -13,6 +13,32 @@ import { History } from '../../helpers/history.js';
 import { MODEL_MAP } from '../../models/model-registry.js';
 
 const RULER_SIZE = 16;
+
+// Web fonts are only fetched once the DOM uses them, so fonts that appear only
+// on the canvas must be loaded before Fabric measures and renders the text.
+function collectFontFamilies(objects, out = new Set()) {
+  for (const obj of objects ?? []) {
+    if (obj.fontFamily) out.add(obj.fontFamily);
+    for (const line of Object.values(obj.styles ?? {})) {
+      for (const style of Object.values(line ?? {})) {
+        if (style?.fontFamily) out.add(style.fontFamily);
+      }
+    }
+    if (obj.objects) collectFontFamilies(obj.objects, out);
+  }
+  return out;
+}
+
+async function loadFontsFor(data) {
+  if (!document.fonts) return;
+  const families = [...collectFontFamilies(data?.objects)];
+  await Promise.all(families.flatMap(f => [
+    document.fonts.load(`normal 24px "${f}"`),
+    document.fonts.load(`bold 24px "${f}"`),
+    document.fonts.load(`italic 24px "${f}"`),
+  ].map(p => p.catch(() => {}))));
+  for (const f of families) fabricCache.clearFontCache(f);
+}
 
 // Fixed design canvas (scene units, anchored at scene origin 0,0). The boundary
 // shape is centered within this fixed space so its position is independent of
@@ -450,8 +476,9 @@ class EditorBodyContainer extends LitElement {
   }
 
   async _applyBoundaryGuide(model, { fitView = false } = {}) {
-    const existing = this._canvas.getObjects().find(o => o._layerId?.startsWith('__boundary__'));
-    if (existing) this._canvas.remove(existing);
+    // Calls can overlap (model picker, version load, init) and each awaits an
+    // SVG fetch — only the most recent call may touch the canvas.
+    const requestId = this._boundaryRequestId = (this._boundaryRequestId ?? 0) + 1;
 
     let pathString = model.boundaryPath ?? null;
     if (model.boundarySvgPath) {
@@ -470,6 +497,12 @@ class EditorBodyContainer extends LitElement {
         console.warn('[BoundaryGuide] SVG load failed, falling back to boundaryPath:', err.message);
       }
     }
+
+    if (requestId !== this._boundaryRequestId) return;
+
+    this._canvas.getObjects()
+      .filter(o => o._layerId?.startsWith('__boundary__'))
+      .forEach(o => this._canvas.remove(o));
 
     if (!pathString) return;
 
@@ -585,6 +618,7 @@ class EditorBodyContainer extends LitElement {
     guidesState.horizontalGuides = Array.isArray(version.guides?.h) ? version.guides.h : [];
     saveGuides();
     if (version?.data && Object.keys(version.data).length > 0) {
+      await loadFontsFor(version.data);
       await this._canvas.loadFromJSON(version.data);
       this._canvas.renderAll();
     } else {
