@@ -211,6 +211,7 @@ class EditorBodyContainer extends LitElement {
     this._onModelSelected = ({ modelId }) => {
       const model = MODEL_MAP[modelId];
       if (model) this._applyBoundaryGuide(model, { fitView: true }).catch(console.error);
+      else this._removeBoundaryGuide();
     };
     on(EVENTS.MODEL_SELECTED, this._onModelSelected);
 
@@ -246,6 +247,9 @@ class EditorBodyContainer extends LitElement {
 
     this._onIconifyIconSelected = ({ svgString }) => this._placeIconifySvg(svgString);
     on(EVENTS.ICONIFY_ICON_SELECTED, this._onIconifyIconSelected);
+
+    // Console helper: downloadDesignSvg('my-design.svg')
+    window.downloadDesignSvg = (filename) => this._downloadSvg(filename);
 
     this._clipboard = null;
     this._pasteOffset = 0;
@@ -542,6 +546,16 @@ class EditorBodyContainer extends LitElement {
     this._canvas.renderAll();
   }
 
+  _removeBoundaryGuide() {
+    // Invalidate any in-flight _applyBoundaryGuide so it can't re-add a guide.
+    this._boundaryRequestId = (this._boundaryRequestId ?? 0) + 1;
+    this._canvas.getObjects()
+      .filter(o => o._layerId?.startsWith('__boundary__'))
+      .forEach(o => this._canvas.remove(o));
+    this._canvas.clipPath = null;
+    this._canvas.requestRenderAll();
+  }
+
   async _applyClipPath() {
     const boundaryObj = this._canvas.getObjects().find(
       o => o._layerId?.startsWith('__boundary__')
@@ -551,6 +565,55 @@ class EditorBodyContainer extends LitElement {
     clip.set({ fill: 'black', absolutePositioned: false });
     this._canvas.clipPath = clip;
     this._canvas.requestRenderAll();
+  }
+
+  // Export the design as SVG, clipped to the boundary shape and framed to its
+  // bounding box, with the dashed boundary outline on top. Ruler guides are
+  // drawn straight onto the context, so they never end up in the markup. The
+  // background color is omitted so only the engraved content remains.
+  async _toClippedSvg() {
+    const boundaryObj = this._canvas.getObjects().find(
+      o => o._layerId?.startsWith('__boundary__')
+    );
+
+    let viewBox = { x: 0, y: 0, width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
+    let clip = null;
+    if (boundaryObj) {
+      clip = await boundaryObj.clone();
+      clip.set({ fill: 'black', stroke: null, strokeDashArray: null, absolutePositioned: false });
+      const br = boundaryObj.getBoundingRect(true);
+      viewBox = { x: br.left, y: br.top, width: br.width, height: br.height };
+    }
+
+    const savedClip = this._canvas.clipPath;
+    const savedBg = this._canvas.backgroundColor;
+    this._canvas.clipPath = clip;
+    this._canvas.backgroundColor = '';
+    try {
+      const svg = this._canvas.toSVG({
+        viewBox,
+        width: `${viewBox.width}`,
+        height: `${viewBox.height}`,
+      });
+      // Append the dashed outline after the clip group so its stroke isn't
+      // clipped in half by the boundary it traces.
+      if (!boundaryObj) return svg;
+      return svg.replace(/<\/svg>\s*$/, `${boundaryObj.toSVG()}</svg>\n`);
+    } finally {
+      this._canvas.clipPath = savedClip;
+      this._canvas.backgroundColor = savedBg;
+    }
+  }
+
+  async _downloadSvg(filename = 'engraving-design.svg') {
+    const svg = await this._toClippedSvg();
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    return svg;
   }
 
   async _placeIconifySvg(svgString) {
@@ -687,6 +750,7 @@ class EditorBodyContainer extends LitElement {
     off(EVENTS.CANVAS_DATA_REQUESTED,  this._onCanvasDataRequested);
     off(EVENTS.CLIP_BOUNDARY_TOGGLED,  this._onClipBoundaryToggled);
     off(EVENTS.ICONIFY_ICON_SELECTED,  this._onIconifyIconSelected);
+    delete window.downloadDesignSvg;
     document.removeEventListener('keydown', this._onCopyPaste);
     document.removeEventListener('mousemove', this._onDocMouseMove);
     document.removeEventListener('mouseup',   this._onDocMouseUp);

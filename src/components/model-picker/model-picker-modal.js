@@ -1,7 +1,10 @@
 import { LitElement, html, css } from 'lit';
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
-import { setItem, getItem, LOCAL } from '../../helpers/local-storage.js';
+import { setItem, getItem, removeItem, LOCAL } from '../../helpers/local-storage.js';
 import { PRODUCT_MODELS } from '../../models/model-registry.js';
+
+// Picker option for working without an item outline.
+const NONE_ID = '__none__';
 
 class ModelPickerModal extends LitElement {
   static properties = {
@@ -116,6 +119,13 @@ class ModelPickerModal extends LitElement {
       object-fit: cover;
     }
 
+    .thumbnail-name {
+      padding: 0 10px;
+      text-align: center;
+      color: var(--color-text);
+      font-weight: 500;
+    }
+
     .model-name {
       padding: 8px 10px;
       font-size: var(--font-size-sm);
@@ -166,13 +176,13 @@ class ModelPickerModal extends LitElement {
   constructor() {
     super();
     this._open = false;
-    this._selectedId = getItem(LOCAL.CURRENT_MODEL_ID) ?? null;
+    this._selectedId = getItem(LOCAL.CURRENT_MODEL_ID) ?? NONE_ID;
   }
 
   connectedCallback() {
     super.connectedCallback();
     this._onOpen = () => {
-      this._selectedId = getItem(LOCAL.CURRENT_MODEL_ID) ?? null;
+      this._selectedId = getItem(LOCAL.CURRENT_MODEL_ID) ?? NONE_ID;
       this._open = true;
     };
     on(EVENTS.SELECT_ITEM_TO_ENGRAVE, this._onOpen);
@@ -189,8 +199,10 @@ class ModelPickerModal extends LitElement {
 
   _confirm() {
     if (!this._selectedId) return;
-    setItem(LOCAL.CURRENT_MODEL_ID, this._selectedId);
-    emit(EVENTS.MODEL_SELECTED, { modelId: this._selectedId });
+    const modelId = this._selectedId === NONE_ID ? null : this._selectedId;
+    if (modelId) setItem(LOCAL.CURRENT_MODEL_ID, modelId);
+    else removeItem(LOCAL.CURRENT_MODEL_ID);
+    emit(EVENTS.MODEL_SELECTED, { modelId });
     this._open = false;
   }
 
@@ -210,6 +222,14 @@ class ModelPickerModal extends LitElement {
           </div>
 
           <div class="model-grid">
+            <div
+              class="model-card ${this._selectedId === NONE_ID ? 'selected' : ''}"
+              @click=${() => this._select(NONE_ID)}
+            >
+              <div class="model-thumbnail">
+                <span class="thumbnail-name">None</span>
+              </div>
+            </div>
             ${PRODUCT_MODELS.map(model => html`
               <div
                 class="model-card ${this._selectedId === model.id ? 'selected' : ''}"
@@ -218,7 +238,7 @@ class ModelPickerModal extends LitElement {
                 <div class="model-thumbnail">
                   ${model.thumbnail
                     ? html`<img src=${model.thumbnail} alt=${model.name} />`
-                    : html`<span>No preview</span>`
+                    : html`<span class="thumbnail-name">${model.name}</span>`
                   }
                 </div>
               </div>
