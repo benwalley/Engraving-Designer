@@ -55,6 +55,30 @@ class SaveSnapshotButton extends LitElement {
         user-select: all;
       }
 
+      /* width: 0 + min-width: 100% fills the popup without widening it */
+      .snapshot-note {
+        margin-top: 0.75rem;
+        width: 0;
+        min-width: 100%;
+        box-sizing: border-box;
+        padding: 0.625rem 0.75rem;
+        background: var(--color-accent-subtle);
+        border-radius: var(--radius-md);
+        color: var(--color-text);
+        font-size: var(--font-size-normal);
+        line-height: 1.5;
+      }
+
+      .snapshot-note p {
+        margin: 0;
+        font-size: inherit;
+        color: inherit;
+      }
+
+      .snapshot-note p + p {
+        margin-top: 0.375rem;
+      }
+
       .error-text {
         font-size: var(--font-size-sm);
         color: var(--color-danger);
@@ -210,6 +234,11 @@ class SaveSnapshotButton extends LitElement {
               ${this._copied ? 'Copied!' : 'Copy URL'}
             </button>
             <button type="button" @click=${this._handleClose}>✕</button>
+          </div>
+          <div class="snapshot-note">
+            <p>This link will always show the design as it is right now.</p>
+            <p>New changes are only saved on this computer.</p>
+            <p><strong>Want to share new changes? Take a new snapshot.</strong></p>
           </div>
         </div>
       ` : ''}
