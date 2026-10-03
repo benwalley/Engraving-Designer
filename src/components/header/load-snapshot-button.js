@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../helpers/firebase.js';
 import { saveLocalDbVersion } from '../../helpers/local-db.js';
-import { getItem, setItem, LOCAL } from '../../helpers/local-storage.js';
+import { setItem, LOCAL } from '../../helpers/local-storage.js';
 import { emit, EVENTS } from '../../helpers/events.js';
 import { buttonStyles } from '../component-styles/button-styles.js';
 
@@ -114,7 +114,7 @@ class LoadSnapshotButton extends LitElement {
       const snapshot = snap.data();
       const newVersion = {
         id: crypto.randomUUID(),
-        name: `Snapshot ${id.slice(0, 6)}`,
+        name: snapshot.versionName ?? `Snapshot ${id.slice(0, 6)}`,
         data: typeof snapshot.canvasData === 'string' ? JSON.parse(snapshot.canvasData) : (snapshot.canvasData ?? {}),
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -122,12 +122,9 @@ class LoadSnapshotButton extends LitElement {
 
       await saveLocalDbVersion(newVersion);
       setItem(LOCAL.CURRENT_VERSION_ID, newVersion.id);
+      // _loadVersion reads the model from localStorage to draw the boundary guide
+      if (snapshot.modelId) setItem(LOCAL.CURRENT_MODEL_ID, snapshot.modelId);
       emit(EVENTS.VERSION_SELECTED, newVersion);
-
-      const currentModelId = getItem(LOCAL.CURRENT_MODEL_ID);
-      if (snapshot.modelId && snapshot.modelId !== currentModelId) {
-        emit(EVENTS.MODEL_SELECTED, { modelId: snapshot.modelId });
-      }
 
       this._status = 'success';
       this._statusMessage = `Loaded "${snapshot.versionName ?? 'Snapshot'}"`;

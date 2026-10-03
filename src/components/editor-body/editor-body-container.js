@@ -338,17 +338,17 @@ class EditorBodyContainer extends LitElement {
       const snapshot = snap.data();
       const newVersion = {
         id: crypto.randomUUID(),
-        name: `Snapshot ${snapshotId.slice(0, 6)}`,
+        name: snapshot.versionName ?? `Snapshot ${snapshotId.slice(0, 6)}`,
         data: typeof snapshot.canvasData === 'string' ? JSON.parse(snapshot.canvasData) : (snapshot.canvasData ?? {}),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
       await saveLocalDbVersion(newVersion);
       setItem(LOCAL.CURRENT_VERSION_ID, newVersion.id);
-      if (snapshot.modelId) {
-        emit(EVENTS.MODEL_SELECTED, { modelId: snapshot.modelId });
-      }
+      // _loadVersion reads the model from localStorage to draw the boundary guide
+      if (snapshot.modelId) setItem(LOCAL.CURRENT_MODEL_ID, snapshot.modelId);
       emit(EVENTS.VERSION_SELECTED, newVersion);
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     } catch (err) {
       console.error('Snapshot URL load failed:', err);
     }
