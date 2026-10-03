@@ -1,62 +1,42 @@
 import { FabricImage, filters } from 'fabric';
 import { emit, EVENTS } from '../helpers/events.js';
 
+// Largest share of the visible canvas a newly added image may cover.
+const MAX_VIEWPORT_FRACTION = 0.8;
+
 export class ImageTool {
   activate(canvas) {
     this._canvas = canvas;
 
     canvas.isDrawingMode = false;
-    canvas.selection = false;
-    canvas.defaultCursor = 'crosshair';
     canvas.discardActiveObject();
-    canvas.getObjects().forEach(obj => {
-      obj.selectable = false;
-      obj.evented = false;
-    });
     canvas.renderAll();
 
     this._fileInput = document.createElement('input');
     this._fileInput.type = 'file';
     this._fileInput.accept = 'image/*';
     this._fileInput.style.display = 'none';
+    this._fileInput.onchange = () => this._load();
+    this._fileInput.oncancel = () => this._done();
     document.body.appendChild(this._fileInput);
 
-    this._pendingPoint = null;
-
-    this._onDown = this._down.bind(this);
-    canvas.on('mouse:down', this._onDown);
-
-    emit(EVENTS.HINT_CHANGED, { message: 'Click anywhere on the canvas to upload an image.' });
+    // Open the picker straight away — the tool is activated from the toolbar click.
+    this._fileInput.click();
   }
 
-  deactivate(canvas) {
-    canvas.off('mouse:down', this._onDown);
+  deactivate() {
     this._fileInput?.remove();
     this._fileInput = null;
-
-    canvas.defaultCursor = 'default';
-    canvas.selection = true;
-    canvas.getObjects().forEach(obj => {
-      if (obj._layerId?.startsWith('__boundary__')) return;
-      obj.selectable = true;
-      obj.evented = true;
-    });
-    canvas.renderAll();
   }
 
-  _down(opt) {
-    if (opt.e.button != null && opt.e.button !== 0) return;
-    const { x, y } = opt.scenePoint;
-    this._pendingPoint = { x, y };
-
-    this._fileInput.value = '';
-    this._fileInput.onchange = () => this._load();
-    this._fileInput.click();
+  _done() {
+    emit(EVENTS.TOOL_CHANGED, { id: 'select' });
   }
 
   async _load() {
     const file = this._fileInput?.files?.[0];
-    if (!file) return;
+    if (!file) return this._done();
+    const canvas = this._canvas;
 
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -69,25 +49,27 @@ export class ImageTool {
     img.filters.push(new filters.Grayscale());
     img.applyFilters();
 
-    const { x, y } = this._pendingPoint;
+    // Shrink oversized images to fit the visible area; never enlarge.
+    const zoom = canvas.getZoom();
+    const visibleW = canvas.getWidth() / zoom;
+    const visibleH = canvas.getHeight() / zoom;
+    const scale = Math.min(1, (visibleW * MAX_VIEWPORT_FRACTION) / img.width, (visibleH * MAX_VIEWPORT_FRACTION) / img.height);
+
     img.set({
-      left: x,
-      top: y,
-      originX: 'left',
-      originY: 'top',
+      scaleX: scale,
+      scaleY: scale,
       lockUniScaling: true,
       strokeWidth: 0,
       selectable: true,
       evented: true,
     });
 
-    this._canvas.add(img);
+    this._done();
+    canvas.add(img);
+    canvas.viewportCenterObject(img);
     img.setCoords();
-    this._canvas.renderAll();
-
-    emit(EVENTS.TOOL_CHANGED, { id: 'select' });
-    this._canvas.setActiveObject(img);
-    this._canvas.fire('selection:created', { selected: [img] });
-    this._canvas.renderAll();
+    canvas.setActiveObject(img);
+    canvas.fire('selection:created', { selected: [img] });
+    canvas.renderAll();
   }
 }

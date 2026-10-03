@@ -5,6 +5,73 @@ const ICONIFY_API = 'https://api.iconify.design';
 const SEARCH_LIMIT = 60;
 const DEBOUNCE_MS = 350;
 
+// Icon data fetched in bulk (one request per icon set) instead of one SVG
+// request per thumbnail — the per-icon approach trips Iconify's rate limit.
+const iconCache = new Map();
+
+async function fetchIconData(iconIds) {
+  const byPrefix = new Map();
+  for (const id of iconIds) {
+    if (iconCache.has(id)) continue;
+    const [prefix, name] = id.split(':');
+    if (!byPrefix.has(prefix)) byPrefix.set(prefix, []);
+    byPrefix.get(prefix).push(name);
+  }
+  await Promise.all([...byPrefix].map(async ([prefix, names]) => {
+    const res = await fetch(`${ICONIFY_API}/${prefix}.json?icons=${names.join(',')}`);
+    if (!res.ok) throw new Error(`Iconify ${res.status}`);
+    const data = await res.json();
+    for (const name of names) {
+      const icon = resolveIcon(data, name);
+      if (icon) iconCache.set(`${prefix}:${name}`, icon);
+    }
+  }));
+}
+
+// Resolves aliases (which may flip/rotate their parent) into a plain icon.
+function resolveIcon(data, name, depth = 0) {
+  const base = { left: 0, top: 0, width: data.width ?? 16, height: data.height ?? 16, hFlip: false, vFlip: false, rotate: 0 };
+  if (data.icons?.[name]) return { ...base, ...data.icons[name] };
+  const alias = data.aliases?.[name];
+  if (!alias || depth > 5) return null;
+  const parent = resolveIcon(data, alias.parent, depth + 1);
+  if (!parent) return null;
+  const { parent: _, hFlip, vFlip, rotate, ...rest } = alias;
+  return {
+    ...parent,
+    ...rest,
+    hFlip: parent.hFlip !== !!hFlip,
+    vFlip: parent.vFlip !== !!vFlip,
+    rotate: (parent.rotate + (rotate ?? 0)) % 4,
+  };
+}
+
+function iconToSvg(icon, color) {
+  let { left, top, width, height, body } = icon;
+  let rotation = icon.rotate;
+  const transforms = [];
+  if (icon.hFlip && icon.vFlip) {
+    rotation += 2;
+  } else if (icon.hFlip) {
+    transforms.push(`translate(${width + left} ${-top})`, 'scale(-1 1)');
+    left = top = 0;
+  } else if (icon.vFlip) {
+    transforms.push(`translate(${-left} ${height + top})`, 'scale(1 -1)');
+    left = top = 0;
+  }
+  rotation %= 4;
+  if (rotation === 1) transforms.unshift(`rotate(90 ${height / 2 + top} ${height / 2 + top})`);
+  if (rotation === 2) transforms.unshift(`rotate(180 ${width / 2 + left} ${height / 2 + top})`);
+  if (rotation === 3) transforms.unshift(`rotate(-90 ${width / 2 + left} ${width / 2 + left})`);
+  if (rotation % 2 === 1) {
+    [left, top] = [top, left];
+    [width, height] = [height, width];
+  }
+  if (transforms.length) body = `<g transform="${transforms.join(' ')}">${body}</g>`;
+  body = body.replaceAll('currentColor', color);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${left} ${top} ${width} ${height}">${body}</svg>`;
+}
+
 class IconifyPickerModal extends LitElement {
   static properties = {
     _open:     { state: true },
@@ -278,7 +345,10 @@ class IconifyPickerModal extends LitElement {
       );
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
-      this._icons = data.icons ?? [];
+      const icons = data.icons ?? [];
+      await fetchIconData(icons);
+      if (q !== this._query.trim()) return;
+      this._icons = icons.filter(id => iconCache.has(id));
     } catch {
       this._error = true;
       this._icons = [];
@@ -287,21 +357,13 @@ class IconifyPickerModal extends LitElement {
   }
 
   _thumbUrl(icon) {
-    const [prefix, name] = icon.split(':');
-    return `${ICONIFY_API}/${prefix}/${name}.svg?width=28&height=28&color=%23000000`;
+    return `data:image/svg+xml,${encodeURIComponent(iconToSvg(iconCache.get(icon), '#000000'))}`;
   }
 
-  async _confirm() {
-    if (!this._selected) return;
-    const [prefix, name] = this._selected.split(':');
-    const url = `${ICONIFY_API}/${prefix}/${name}.svg?color=%23000000`;
-    try {
-      const res = await fetch(url);
-      const svgString = await res.text();
-      emit(EVENTS.ICONIFY_ICON_SELECTED, { svgString, iconId: this._selected });
-    } catch {
-      console.error('Failed to fetch Iconify SVG');
-    }
+  _confirm() {
+    const icon = iconCache.get(this._selected);
+    if (!icon) return;
+    emit(EVENTS.ICONIFY_ICON_SELECTED, { svgString: iconToSvg(icon, '#000000'), iconId: this._selected });
     this._open = false;
   }
 
