@@ -65,6 +65,15 @@ function toGrayscale(obj) {
 const CANVAS_WIDTH  = 800;
 const CANVAS_HEIGHT = 600;
 
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 class EditorBodyContainer extends LitElement {
   static styles = css`
     :host {
@@ -270,7 +279,7 @@ class EditorBodyContainer extends LitElement {
     this._onWaveformSelected = ({ svgString }) => this._placeSvg(svgString, { maxDim: 400, layerName: 'Waveform' });
     on(EVENTS.WAVEFORM_SELECTED, this._onWaveformSelected);
 
-    // Console helper: downloadDesignSvg('my-design.svg')
+    // Console helper: downloadDesignSvg('my-design.svg') — also saves a transparent PNG alongside.
     window.downloadDesignSvg = (filename) => this._downloadSvg(filename);
 
     this._clipboard = null;
@@ -627,14 +636,46 @@ class EditorBodyContainer extends LitElement {
     }
   }
 
+  // Render the design to a transparent PNG, clipped and framed like the SVG
+  // export but without the boundary outline. Rendered at identity zoom/pan so
+  // the output size depends only on the design, then scaled by `multiplier`.
+  async _toClippedPng(multiplier = 4) {
+    const isBoundary = o => o._layerId?.startsWith('__boundary__');
+    const boundaryObj = this._canvas.getObjects().find(isBoundary);
+
+    let rect = { left: 0, top: 0, width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
+    let clip = null;
+    if (boundaryObj) {
+      clip = await boundaryObj.clone();
+      clip.set({ fill: 'black', stroke: null, strokeDashArray: null, absolutePositioned: false });
+      const br = boundaryObj.getBoundingRect(true);
+      rect = { left: br.left, top: br.top, width: br.width, height: br.height };
+    }
+
+    const savedClip = this._canvas.clipPath;
+    const savedBg = this._canvas.backgroundColor;
+    const savedVp = this._canvas.viewportTransform;
+    this._canvas.clipPath = clip;
+    this._canvas.backgroundColor = '';
+    this._canvas.viewportTransform = [1, 0, 0, 1, 0, 0];
+    let el;
+    try {
+      el = this._canvas.toCanvasElement(multiplier, { ...rect, filter: o => !isBoundary(o) });
+    } finally {
+      this._canvas.clipPath = savedClip;
+      this._canvas.backgroundColor = savedBg;
+      this._canvas.viewportTransform = savedVp;
+      this._canvas.calcViewportBoundaries();
+      this._canvas.requestRenderAll();
+    }
+    return new Promise(resolve => el.toBlob(resolve, 'image/png'));
+  }
+
   async _downloadSvg(filename = 'engraving-design.svg') {
     const svg = await this._toClippedSvg();
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), filename);
+    const png = await this._toClippedPng();
+    downloadBlob(png, filename.replace(/\.svg$/i, '') + '.png');
     return svg;
   }
 
