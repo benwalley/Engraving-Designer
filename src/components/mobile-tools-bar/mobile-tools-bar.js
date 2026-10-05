@@ -2,6 +2,8 @@ import { LitElement, html, css } from 'lit';
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { TOOLS, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import '../left-bar/tool-button.js';
+import '../icons/icon-tool-icons.js';
+import '../icons/icon-tool-waveform.js';
 
 class MobileToolsBar extends LitElement {
   static properties = {
@@ -52,6 +54,12 @@ class MobileToolsBar extends LitElement {
           ${tool.icon}
         </tool-button>
       `)}
+      <tool-button label="Icons" @click=${() => emit(EVENTS.OPEN_ICONIFY_PICKER)}>
+        <icon-tool-icons></icon-tool-icons>
+      </tool-button>
+      <tool-button label="Waveform" @click=${() => emit(EVENTS.OPEN_WAVEFORM_PICKER)}>
+        <icon-tool-waveform></icon-tool-waveform>
+      </tool-button>
     `;
   }
 }

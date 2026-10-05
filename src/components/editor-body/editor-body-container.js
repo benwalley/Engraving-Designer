@@ -264,8 +264,11 @@ class EditorBodyContainer extends LitElement {
     };
     on(EVENTS.CLIP_BOUNDARY_TOGGLED, this._onClipBoundaryToggled);
 
-    this._onIconifyIconSelected = ({ svgString }) => this._placeIconifySvg(svgString);
+    this._onIconifyIconSelected = ({ svgString }) => this._placeSvg(svgString, { maxDim: 150, grayscale: true });
     on(EVENTS.ICONIFY_ICON_SELECTED, this._onIconifyIconSelected);
+
+    this._onWaveformSelected = ({ svgString }) => this._placeSvg(svgString, { maxDim: 400, layerName: 'Waveform' });
+    on(EVENTS.WAVEFORM_SELECTED, this._onWaveformSelected);
 
     // Console helper: downloadDesignSvg('my-design.svg')
     window.downloadDesignSvg = (filename) => this._downloadSvg(filename);
@@ -635,11 +638,10 @@ class EditorBodyContainer extends LitElement {
     return svg;
   }
 
-  async _placeIconifySvg(svgString) {
+  async _placeSvg(svgString, { maxDim, grayscale = false, layerName = null }) {
     const { objects, options } = await loadSVGFromString(svgString);
-    objects.forEach(o => o && toGrayscale(o));
+    if (grayscale) objects.forEach(o => o && toGrayscale(o));
     const shape = fabricUtil.groupSVGElements(objects, options);
-    const maxDim = 150;
     const naturalW = shape.width  || 100;
     const naturalH = shape.height || 100;
     const scale = Math.min(maxDim / naturalW, maxDim / naturalH);
@@ -651,6 +653,7 @@ class EditorBodyContainer extends LitElement {
       scaleX: scale,
       scaleY: scale,
       _isDecoration: true,
+      _layerName: layerName,
     });
     this._canvas.add(shape);
     this._switchTool('select');
@@ -770,6 +773,7 @@ class EditorBodyContainer extends LitElement {
     off(EVENTS.CANVAS_DATA_REQUESTED,  this._onCanvasDataRequested);
     off(EVENTS.CLIP_BOUNDARY_TOGGLED,  this._onClipBoundaryToggled);
     off(EVENTS.ICONIFY_ICON_SELECTED,  this._onIconifyIconSelected);
+    off(EVENTS.WAVEFORM_SELECTED,      this._onWaveformSelected);
     delete window.downloadDesignSvg;
     document.removeEventListener('keydown', this._onCopyPaste);
     document.removeEventListener('mousemove', this._onDocMouseMove);

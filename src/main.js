@@ -18,5 +18,6 @@ import './components/bottom-bar/bottom-bar-container.js'
 import './components/shared/clip-toggle-button.js'
 import './components/model-picker/model-picker-modal.js'
 import './components/shared/iconify-picker-modal.js'
+import './components/shared/waveform-editor-modal.js'
 import { ENABLE_3D } from './helpers/feature-flags.js';
 if (ENABLE_3D) import('./components/viewer-3d/viewer-3d-modal.js');

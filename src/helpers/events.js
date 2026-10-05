@@ -26,6 +26,8 @@ export const EVENTS = {
   CLIP_BOUNDARY_TOGGLED:  'clip:boundary-toggled',
   OPEN_ICONIFY_PICKER:    'iconify:open',
   ICONIFY_ICON_SELECTED:  'iconify:selected',
+  OPEN_WAVEFORM_PICKER:   'waveform:open',
+  WAVEFORM_SELECTED:      'waveform:selected',
 };
 
 const listeners = new Map();

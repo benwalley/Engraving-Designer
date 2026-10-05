@@ -5,6 +5,7 @@ import { TOOLS, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import './tool-button.js';
 import '../right-bar/layers-panel.js';
 import '../icons/icon-tool-icons.js';
+import '../icons/icon-tool-waveform.js';
 
 class LeftBarContainer extends LitElement {
   static properties = {
@@ -126,6 +127,9 @@ class LeftBarContainer extends LitElement {
         `)}
         <tool-button label="Icons" @click=${() => emit(EVENTS.OPEN_ICONIFY_PICKER)}>
           <icon-tool-icons></icon-tool-icons>
+        </tool-button>
+        <tool-button label="Waveform" @click=${() => emit(EVENTS.OPEN_WAVEFORM_PICKER)}>
+          <icon-tool-waveform></icon-tool-waveform>
         </tool-button>
       </div>
       <hr class="panel-divider" />
