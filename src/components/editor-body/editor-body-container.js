@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { Canvas as FabricCanvas, ActiveSelection, Path as FabricPath, loadSVGFromString, util as fabricUtil, cache as fabricCache } from 'fabric';
+import { Canvas as FabricCanvas, ActiveSelection, Path as FabricPath, Color, loadSVGFromString, util as fabricUtil, cache as fabricCache } from 'fabric';
 import { on, off, emit, EVENTS } from '../../helpers/events.js';
 import { TOOL_MAP, DEFAULT_TOOL_ID } from '../../tools/registry.js';
 import { SelectTool } from '../../tools/select-tool.js';
@@ -38,6 +38,25 @@ async function loadFontsFor(data) {
     document.fonts.load(`italic 24px "${f}"`),
   ].map(p => p.catch(() => {}))));
   for (const f of families) fabricCache.clearFontCache(f);
+}
+
+// Engraving is monochrome, so multi-color icons (emoji, logos) are converted to
+// grayscale on import. Alpha is preserved; gradients are converted stop by stop.
+function grayColor(c) {
+  if (typeof c !== 'string' || !c || c === 'none' || c === 'transparent') return c;
+  return new Color(c).toGrayscale().toRgba();
+}
+
+function toGrayscale(obj) {
+  for (const prop of ['fill', 'stroke']) {
+    const value = obj[prop];
+    if (value?.colorStops) {
+      value.colorStops.forEach(stop => { stop.color = grayColor(stop.color); });
+    } else {
+      obj.set(prop, grayColor(value));
+    }
+  }
+  obj.getObjects?.().forEach(toGrayscale);
 }
 
 // Fixed design canvas (scene units, anchored at scene origin 0,0). The boundary
@@ -618,6 +637,7 @@ class EditorBodyContainer extends LitElement {
 
   async _placeIconifySvg(svgString) {
     const { objects, options } = await loadSVGFromString(svgString);
+    objects.forEach(o => o && toGrayscale(o));
     const shape = fabricUtil.groupSVGElements(objects, options);
     const maxDim = 150;
     const naturalW = shape.width  || 100;
